@@ -104,18 +104,28 @@ class CurriculumCluster(models.Model):
         return f"{self.name} ({self.get_curriculum_level_display()})"
 
     @classmethod
+    def seed_default_clusters(cls):
+        default_clusters = [
+            ('pure_academic', 'Pure Academic', 'shs', 'Core academic track for Senior High School university preparation'),
+            ('jhs_core', 'JHS MATATAG Curriculum Core', 'jhs', 'DepEd MATATAG standard core subjects for Grades 7–10'),
+            ('shs_core', 'SSHS Core Subject', 'shs', 'Mandatory general education core curriculum for Grades 11–12'),
+            ('shs_stem', 'SSHS Academic - STEM Cluster', 'shs', 'Science, Technology, Engineering, and Mathematics specialized track'),
+            ('shs_arts_ssh', 'SSHS Academic - Arts, Social Sciences & Humanities', 'shs', 'Creative arts, literature, psychology, and social research strand'),
+            ('shs_sports_health', 'SSHS Academic - Sports, Health & Wellness', 'shs', 'Athletic coaching, human kinetics, and health sciences track'),
+            ('shs_tech_pro', 'SSHS Tech-Pro (TVL) Elective', 'shs', 'Technical-Vocational-Livelihood hands-on skills training & TESDA competencies'),
+        ]
+        for code, name, level, desc in default_clusters:
+            cls.objects.get_or_create(
+                code=code,
+                defaults={'name': name, 'curriculum_level': level, 'description': desc}
+            )
+
+    @classmethod
     def get_all_choices(cls):
         clusters = list(cls.objects.filter(is_active=True).order_by('curriculum_level', 'name'))
         if not clusters:
-            return [
-                ('pure_academic', 'Pure Academic'),
-                ('jhs_core', 'JHS MATATAG Curriculum Core'),
-                ('shs_core', 'SSHS Core Subject'),
-                ('shs_stem', 'SSHS Academic - STEM Cluster'),
-                ('shs_arts_ssh', 'SSHS Academic - Arts, Social Sciences & Humanities'),
-                ('shs_sports_health', 'SSHS Academic - Sports, Health & Wellness'),
-                ('shs_tech_pro', 'SSHS Tech-Pro (TVL) Elective'),
-            ]
+            cls.seed_default_clusters()
+            clusters = list(cls.objects.filter(is_active=True).order_by('curriculum_level', 'name'))
         return [(c.code, c.name) for c in clusters]
 
 
@@ -249,11 +259,33 @@ class AncillaryDesignationCatalog(models.Model):
         return f"{self.name} ({self.default_weekly_hours}h/wk)"
 
     @classmethod
+    def seed_default_catalog(cls):
+        default_catalog = [
+            ('adviser', 'Class Advisory (Adviser)', 2.0, 'Official advisory assignment per section (DepEd DO 005 s. 2024)'),
+            ('dept_coordinator', 'Department / Grade Level Coordinator', 3.0, 'Departmental supervision & curriculum coordination'),
+            ('ict_coordinator', 'School ICT / LIS Coordinator', 4.0, 'In charge of Learner Information System (LIS) & IT infrastructure'),
+            ('drrm_coordinator', 'Disaster Risk Reduction (DRRM) Coordinator', 2.0, 'School DRRM planning and emergency response'),
+            ('school_paper', 'School Paper / Journalism Adviser', 2.0, 'Campus journalism & school publication advising'),
+            ('scout_coordinator', 'BSP / GSP Scout Coordinator', 2.0, 'Boy Scouts / Girl Scouts movement coordination'),
+            ('guidance_designate', 'Guidance Counselor Designate', 2.0, 'Student welfare, counseling, and child protection desk'),
+            ('canteen_manager', 'Canteen / Feeding Program Manager', 2.0, 'School canteen operations & SBFP feeding program'),
+            ('property_custodian', 'Property Custodian / Supply Officer', 2.0, 'School inventory, supplies, and physical asset management'),
+            ('sports_coach', 'Sports / Athletic Coordinator', 2.0, 'Varsity sports training and DepEd meets preparation'),
+            ('reading_coordinator', 'Reading / Remediation Coordinator', 2.0, 'Catch-up Fridays & school reading literacy program'),
+        ]
+        for code, name, hours, desc in default_catalog:
+            cls.objects.get_or_create(
+                code=code,
+                defaults={'name': name, 'default_weekly_hours': hours, 'description': desc}
+            )
+
+    @classmethod
     def get_all_choices(cls):
         custom = list(cls.objects.filter(is_active=True).order_by('name'))
         if not custom:
-            return AncillaryDuty.COMMON_DESIGNATIONS
-        return [(d.code, f"{d.name} ({d.default_weekly_hours}h/wk)") for d in custom]
+            cls.seed_default_catalog()
+            custom = list(cls.objects.filter(is_active=True).order_by('name'))
+        return [(d.code, f"{d.name} ({int(d.default_weekly_hours) if d.default_weekly_hours == int(d.default_weekly_hours) else d.default_weekly_hours}h/wk)") for d in custom]
 
 
 class AncillaryDuty(models.Model):

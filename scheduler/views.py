@@ -1282,6 +1282,16 @@ def add_ancillary_duty_api(request):
         description=description
     )
 
+    cat_code = designation_type if designation_type != 'custom' else title.lower().replace(' ', '_').replace('-', '_')[:50]
+    AncillaryDesignationCatalog.objects.get_or_create(
+        code=cat_code,
+        defaults={
+            'name': title,
+            'default_weekly_hours': weekly_hours,
+            'description': description or f"Auto-registered from faculty assignment ({title})"
+        }
+    )
+
     AuditLog.objects.create(
         action="Ancillary Designation Added",
         details=f"Assigned '{duty.title}' ({duty.weekly_hours}h/wk) to {teacher.full_name}."

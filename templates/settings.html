@@ -494,19 +494,19 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
                         <label class="block font-bold text-slate-700">Max Daily Teaching Hours</label>
-                        <input type="number" id="policyMaxDaily" value="{{ profile.max_daily_teaching_hours|default:6 }}" min="1" max="10" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <input type="number" id="policyMaxDaily" value="{{ profile.max_daily_teaching_hours|floatformat:"-1"|default:6 }}" min="0.5" max="10" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
                         <span class="text-[10px] text-slate-400 block">DepEd RA 4670 Cap: 6 hours/day</span>
                     </div>
 
                     <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
                         <label class="block font-bold text-slate-700">Max Weekly Teaching Hours</label>
-                        <input type="number" id="policyMaxWeekly" value="{{ profile.max_weekly_teaching_hours|default:30 }}" min="1" max="50" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <input type="number" id="policyMaxWeekly" value="{{ profile.max_weekly_teaching_hours|floatformat:"-1"|default:30 }}" min="0.5" max="50" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
                         <span class="text-[10px] text-slate-400 block">Typical Max Teaching: 30 hours/week</span>
                     </div>
 
                     <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
                         <label class="block font-bold text-slate-700">Official Workweek Total</label>
-                        <input type="number" id="policyStandardWorkweek" value="{{ profile.standard_workweek_hours|default:40 }}" min="20" max="60" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <input type="number" id="policyStandardWorkweek" value="{{ profile.standard_workweek_hours|floatformat:"-1"|default:40 }}" min="10" max="60" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
                         <span class="text-[10px] text-slate-400 block">Teaching + Ancillary + Prep: 40 hrs</span>
                     </div>
                 </div>
