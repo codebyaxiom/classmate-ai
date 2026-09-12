@@ -1,0 +1,64 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Room & Facility Utilization | CLASSMATE-AI{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-door-open text-deped-blue"></i>
+                <span>Classroom & Laboratory Utilization</span>
+            </h1>
+            <p class="text-xs text-slate-500">
+                Track occupancy rates across standard classrooms, science labs, computer labs, and TVL workshops.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'export_excel' %}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Export Report</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Utilization Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        {% for stat in room_stats %}
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3 hover:border-blue-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="font-heading font-bold text-base text-slate-900 block">{{ stat.room.name }}</span>
+                    <span class="text-[11px] text-slate-400 block">{{ stat.room.building|default:"Campus Wing" }}</span>
+                </div>
+                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full {% if stat.room.room_type == 'science_lab' %}bg-purple-100 text-purple-800{% elif stat.room.room_type == 'computer_lab' %}bg-blue-100 text-blue-800{% elif stat.room.room_type == 'tvl_workshop' %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                    {{ stat.room.get_room_type_display }}
+                </span>
+            </div>
+
+            <!-- Utilization Bar -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-semibold text-slate-600">Occupancy</span>
+                    <span class="font-bold text-deped-darkblue">{{ stat.rate }}%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div class="h-2.5 rounded-full {% if stat.rate > 80 %}bg-amber-500{% elif stat.rate > 40 %}bg-blue-600{% else %}bg-emerald-500{% endif %}" style="width: {{ stat.rate }}%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400">
+                    <span>{{ stat.occupied_count }} occupied slots</span>
+                    <span>Cap: {{ stat.room.capacity }} seats</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 font-semibold">
+            No rooms registered.
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

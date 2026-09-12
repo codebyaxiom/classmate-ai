@@ -1,0 +1,19 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.sqlite3-journal
+
+# Database
+# Note: Keeping db.sqlite3 or ignoring: for demo reproducibility, we can keep or ignore.
+# Let us ignore local temp files and logs
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

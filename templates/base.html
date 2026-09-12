@@ -1,0 +1,281 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}CLASSMATE-AI | DepEd Automated Scheduling{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor / FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deped: {
+                            blue: '#0038A8',
+                            darkblue: '#002570',
+                            gold: '#FDDA24',
+                            amber: '#D97706',
+                            red: '#CE1126',
+                            light: '#F4F7FC',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        heading: ['"Outfit"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F4F7FC; }
+        h1, h2, h3, h4, .font-heading { font-family: 'Outfit', sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        /* Custom scrollbar for timetables */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen flex flex-col pb-20 md:pb-0 text-slate-800 antialiased selection:bg-deped-blue selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand & Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-deped-blue to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                        <i class="fa-solid fa-graduation-cap text-lg text-deped-gold"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-heading font-extrabold text-xl text-deped-darkblue tracking-tight">CLASSMATE<span class="text-blue-600">-AI</span></span>
+                            <span class="text-[10px] uppercase font-bold bg-deped-gold/20 text-amber-800 px-2 py-0.5 rounded-full border border-deped-gold/30">DepEd SSHS</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 font-medium hidden sm:block">Automated Teaching Load & Timetable Optimizer</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation Links -->
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="{% url 'dashboard' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'dashboard' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-gauge-high mr-1.5"></i>Dashboard
+                    </a>
+                    <a href="{% url 'timetable' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'timetable' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-calendar-days mr-1.5"></i>Timetable Studio
+                    </a>
+                    <a href="{% url 'teacher_loads' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'teacher_loads' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-chalkboard-user mr-1.5"></i>Teacher Loads (SF7)
+                    </a>
+                    <a href="{% url 'room_utilization' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'room_utilization' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-door-open mr-1.5"></i>Rooms
+                    </a>
+                    <a href="{% url 'import_export' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'import_export' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-file-excel mr-1.5"></i>Import/Export
+                    </a>
+                </nav>
+
+                <!-- Quick Action Button -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="openGaModal()" class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-deped-blue text-white shadow-md shadow-blue-600/25 hover:from-blue-700 hover:to-deped-darkblue transition active:scale-95">
+                        <i class="fa-solid fa-bolt text-deped-gold mr-1.5 animate-pulse"></i>
+                        <span>Run AI Optimizer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Alert Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl text-sm font-medium border flex items-center justify-between {% if message.tags == 'error' %}bg-red-50 text-red-700 border-red-200{% else %}bg-emerald-50 text-emerald-700 border-emerald-200{% endif %}">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid {% if message.tags == 'error' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main View Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar (Phone Optimized) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 shadow-lg px-2 py-1 flex justify-around items-center">
+        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'dashboard' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-gauge-high text-base mb-0.5"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="{% url 'timetable' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'timetable' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-calendar-days text-base mb-0.5"></i>
+            <span>Timetable</span>
+        </a>
+        <button onclick="openGaModal()" class="flex flex-col items-center -mt-4 p-2.5 rounded-full bg-gradient-to-tr from-deped-blue to-blue-600 text-white shadow-lg shadow-blue-500/30">
+            <i class="fa-solid fa-bolt text-deped-gold text-lg"></i>
+        </button>
+        <a href="{% url 'teacher_loads' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teacher_loads' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-chalkboard-user text-base mb-0.5"></i>
+            <span>Loads (SF7)</span>
+        </a>
+        <a href="{% url 'import_export' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'import_export' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-file-excel text-base mb-0.5"></i>
+            <span>Import/Export</span>
+        </a>
+    </nav>
+
+    <!-- AI Optimization Modal -->
+    <div id="gaModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all">
+            <div class="bg-gradient-to-r from-deped-darkblue to-deped-blue p-5 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-deped-gold">
+                        <i class="fa-solid fa-dna text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-bold text-lg leading-tight">Genetic Algorithm Optimizer</h3>
+                        <p class="text-xs text-blue-200">Heuristic Timetable Evolution</p>
+                    </div>
+                </div>
+                <button onclick="closeGaModal()" class="text-white/80 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
+                    <i class="fa-solid fa-circle-info text-blue-600 mr-1"></i>
+                    Resolves teacher double-booking, room collisions, specialized laboratory matching, and DepEd Magna Carta 6-hour daily load limits.
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Population Size (Chromosomes)</label>
+                    <input type="number" id="popSize" value="70" min="20" max="200" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-deped-blue outline-none font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Max Evolution Generations</label>
+                    <input type="number" id="maxGens" value="120" min="20" max="300" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-deped-blue outline-none font-semibold">
+                    <span class="text-[11px] text-slate-400">Terminates earlier if 0 hard conflicts are reached.</span>
+                </div>
+
+                <!-- Live Progress Box -->
+                <div id="gaProgressBox" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+                    <div class="flex items-center justify-center space-x-2 text-deped-blue font-bold text-sm">
+                        <i class="fa-solid fa-gear fa-spin"></i>
+                        <span>Evolving Schedule Generation...</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div id="gaProgressBar" class="bg-gradient-to-r from-blue-500 to-deped-gold h-2 rounded-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <p id="gaStatusText" class="text-xs text-slate-500 font-medium">Evaluating constraint penalties...</p>
+                </div>
+
+                <div class="flex items-center space-x-3 pt-2">
+                    <button type="button" onclick="closeGaModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50">Cancel</button>
+                    <button type="button" id="startGaBtn" onclick="triggerGaRun()" class="w-1/2 py-2.5 rounded-xl bg-deped-blue text-white font-bold text-sm hover:bg-deped-darkblue shadow-md transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-play text-xs text-deped-gold"></i>
+                        <span>Start Optimizer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Toast Notifications -->
+    <div id="toast" class="fixed top-5 right-5 z-50 hidden transition-all duration-300 transform translate-y-[-20px] opacity-0">
+        <div id="toastContent" class="px-5 py-3.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center space-x-2.5"></div>
+    </div>
+
+    <script>
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const content = document.getElementById('toastContent');
+            content.className = isError 
+                ? 'px-5 py-3.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center space-x-2.5 bg-red-600 text-white border-red-700'
+                : 'px-5 py-3.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center space-x-2.5 bg-slate-900 text-white border-slate-800';
+            content.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-xmark' : 'fa-circle-check text-emerald-400'}"></i><span>${message}</span>`;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+            }, 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-20px]', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3500);
+        }
+
+        function openGaModal() {
+            const modal = document.getElementById('gaModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeGaModal() {
+            const modal = document.getElementById('gaModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('gaProgressBox').classList.add('hidden');
+            document.getElementById('startGaBtn').disabled = false;
+        }
+
+        async function triggerGaRun() {
+            const popSize = document.getElementById('popSize').value;
+            const maxGens = document.getElementById('maxGens').value;
+            const progressBox = document.getElementById('gaProgressBox');
+            const progressBar = document.getElementById('gaProgressBar');
+            const statusText = document.getElementById('gaStatusText');
+            const startBtn = document.getElementById('startGaBtn');
+
+            progressBox.classList.remove('hidden');
+            startBtn.disabled = true;
+            progressBar.style.width = '20%';
+            statusText.textContent = 'Initializing candidate chromosomes...';
+
+            const formData = new FormData();
+            formData.append('pop_size', popSize);
+            formData.append('max_gens', maxGens);
+
+            try {
+                setTimeout(() => { progressBar.style.width = '60%'; statusText.textContent = 'Iterating genetic crossover & mutation...'; }, 600);
+                const res = await fetch("{% url 'api_run_ga' %}", {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    progressBar.style.width = '100%';
+                    statusText.textContent = 'Solution finalized!';
+                    showToast(`Schedule generated! Fitness: ${data.fitness}% | 0 Hard Conflicts.`);
+                    setTimeout(() => {
+                        closeGaModal();
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showToast(data.message || 'Generation failed', true);
+                    startBtn.disabled = false;
+                }
+            } catch (err) {
+                showToast('Network error while running optimizer', true);
+                startBtn.disabled = false;
+            }
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

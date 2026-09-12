@@ -1,0 +1,111 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DepEd SF7 — {{ teacher.full_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fff; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body class="p-8 max-w-4xl mx-auto text-slate-800 text-xs">
+
+    <!-- Action Bar -->
+    <div class="no-print mb-6 p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+        <div>
+            <span class="font-bold text-slate-800 block text-sm">Official DepEd School Form 7 (SF7)</span>
+            <span class="text-[11px] text-slate-500">School Personnel Assignment List & Basic Profile</span>
+        </div>
+        <button onclick="window.print()" class="px-5 py-2 rounded-xl bg-blue-700 text-white font-bold text-xs shadow hover:bg-blue-800">
+            Print Official Form
+        </button>
+    </div>
+
+    <!-- Official Header -->
+    <div class="text-center space-y-1 pb-4 border-b-2 border-slate-900">
+        <p class="text-[10px] uppercase tracking-widest text-slate-600 font-bold">Republic of the Philippines</p>
+        <p class="text-[11px] uppercase tracking-wider font-extrabold text-slate-800">Department of Education</p>
+        <p class="text-[10px] text-slate-600">Region II — Schools Division Office of Isabela</p>
+        <h1 class="text-base font-extrabold uppercase tracking-wide text-slate-900 pt-1">
+            SCHOOL FORM 7 (SF7) — TEACHER'S INDIVIDUAL PROGRAM
+        </h1>
+        <p class="text-[10px] text-slate-500">School Year {{ schedule.academic_year.name }} | {{ schedule.term.name }}</p>
+    </div>
+
+    <!-- Teacher Info Banner -->
+    <div class="grid grid-cols-2 gap-4 py-4 border-b border-slate-200 text-xs">
+        <div>
+            <p><strong>Teacher Name:</strong> <span class="uppercase font-bold">{{ teacher.full_name }}</span></p>
+            <p><strong>Employee ID:</strong> {{ teacher.employee_id }}</p>
+            <p><strong>Department:</strong> {{ teacher.department.name }}</p>
+        </div>
+        <div>
+            <p><strong>Official Email:</strong> {{ teacher.email }}</p>
+            <p><strong>Max Teaching Load:</strong> {{ teacher.max_daily_hours }} hours/day (Magna Carta Compliance)</p>
+            <p><strong>Weekly Assigned:</strong> {{ total_hours }} hours/week</p>
+        </div>
+    </div>
+
+    <!-- Timetable Details -->
+    <div class="py-4">
+        <h2 class="font-bold text-xs uppercase tracking-wider text-slate-700 mb-2">Class Assignment Schedule</h2>
+        <table class="w-full border border-slate-300 text-left border-collapse text-[11px]">
+            <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                <tr>
+                    <th class="p-2 border-r border-slate-300 text-center w-24">Day</th>
+                    <th class="p-2 border-r border-slate-300 text-center w-24">Time</th>
+                    <th class="p-2 border-r border-slate-300">Subject</th>
+                    <th class="p-2 border-r border-slate-300">Grade & Section</th>
+                    <th class="p-2 border-r border-slate-300">Classroom / Facility</th>
+                    <th class="p-2 text-center w-20">Hours</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for it in items %}
+                <tr>
+                    <td class="p-2 border-r border-slate-300 text-center font-semibold">{{ it.time_slot.get_day_of_week_display }}</td>
+                    <td class="p-2 border-r border-slate-300 text-center">{{ it.time_slot.start_time|time:"g:i A" }} - {{ it.time_slot.end_time|time:"g:i A" }}</td>
+                    <td class="p-2 border-r border-slate-300 font-semibold">{{ it.subject.code }} — {{ it.subject.title }}</td>
+                    <td class="p-2 border-r border-slate-300">{{ it.section.name }}</td>
+                    <td class="p-2 border-r border-slate-300">{{ it.room.name }}</td>
+                    <td class="p-2 text-center font-bold">1.0</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-4 text-center text-slate-400">No classes assigned.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-400">
+                <tr>
+                    <td colspan="5" class="p-2 text-right">Total Actual Teaching Hours / Week:</td>
+                    <td class="p-2 text-center text-blue-900">{{ total_hours }}.0</td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="p-2 text-right">Preparation & Ancillary Services (RA 4670):</td>
+                    <td class="p-2 text-center text-slate-700">{{ prep_hours }}.0</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Signature Sign-offs -->
+    <div class="grid grid-cols-2 gap-12 pt-12 text-center text-xs">
+        <div>
+            <div class="border-b border-slate-800 pb-1 font-bold uppercase">{{ teacher.full_name }}</div>
+            <span class="text-[10px] text-slate-500">Teacher Signature</span>
+        </div>
+        <div>
+            <div class="border-b border-slate-800 pb-1 font-bold uppercase">School Principal / Administrator</div>
+            <span class="text-[10px] text-slate-500">Approved by</span>
+        </div>
+    </div>
+
+</body>
+</html>

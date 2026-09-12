@@ -1,0 +1,336 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Timetable Studio | CLASSMATE-AI{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+    <!-- Controls Header -->
+    <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-calendar-days text-deped-blue"></i>
+                    <span>Interactive Timetable Studio</span>
+                </h1>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">
+                    Viewing: <strong class="text-deped-darkblue">{{ current_entity_name }}</strong>
+                </p>
+            </div>
+            
+            <div class="flex items-center space-x-2 self-start md:self-auto">
+                <button onclick="window.print()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-print text-slate-400"></i>
+                    <span>Print Table</span>
+                </button>
+                <a href="{% url 'export_excel' %}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Excel</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Row -->
+        <form method="GET" action="{% url 'timetable' %}" id="filterForm" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-slate-100">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Filter View Mode</label>
+                <select name="filter_type" id="filterType" onchange="this.form.submit()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-deped-blue outline-none">
+                    <option value="section" {% if filter_type == 'section' %}selected{% endif %}>Class Section View</option>
+                    <option value="teacher" {% if filter_type == 'teacher' %}selected{% endif %}>Teacher Schedule View</option>
+                    <option value="room" {% if filter_type == 'room' %}selected{% endif %}>Room & Lab View</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Target</label>
+                <select name="filter_id" id="filterId" onchange="this.form.submit()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-deped-blue outline-none">
+                    {% if filter_type == 'section' %}
+                        {% for sec in sections %}
+                        <option value="{{ sec.id }}" {% if filter_id == sec.id|stringformat:"i" %}selected{% endif %}>
+                            {{ sec.name }} (G{{ sec.grade_level }} - {{ sec.get_cluster_display }})
+                        </option>
+                        {% endfor %}
+                    {% elif filter_type == 'teacher' %}
+                        {% for t in teachers %}
+                        <option value="{{ t.id }}" {% if filter_id == t.id|stringformat:"i" %}selected{% endif %}>
+                            {{ t.full_name }} — {{ t.department.name }}
+                        </option>
+                        {% endfor %}
+                    {% elif filter_type == 'room' %}
+                        {% for r in rooms %}
+                        <option value="{{ r.id }}" {% if filter_id == r.id|stringformat:"i" %}selected{% endif %}>
+                            {{ r.name }} ({{ r.get_room_type_display }})
+                        </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </form>
+
+        <!-- Mobile Phone Day-Selector Pills (Crucial for Phone Viewing) -->
+        <div class="md:hidden pt-2 border-t border-slate-100 flex items-center space-x-1.5 overflow-x-auto pb-1">
+            <button type="button" onclick="filterMobileDay('all')" class="day-pill active px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-deped-blue text-white" data-day="all">All Days</button>
+            <button type="button" onclick="filterMobileDay(1)" class="day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-day="1">Mon</button>
+            <button type="button" onclick="filterMobileDay(2)" class="day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-day="2">Tue</button>
+            <button type="button" onclick="filterMobileDay(3)" class="day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-day="3">Wed</button>
+            <button type="button" onclick="filterMobileDay(4)" class="day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-day="4">Thu</button>
+            <button type="button" onclick="filterMobileDay(5)" class="day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-day="5">Fri</button>
+        </div>
+    </div>
+
+    <!-- Timetable Grid Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[720px]">
+                <thead>
+                    <tr class="bg-slate-900 text-white text-xs uppercase font-heading tracking-wider">
+                        <th class="py-3 px-3 w-28 text-center border-r border-slate-800">Period / Time</th>
+                        {% for day_num, day_name in days %}
+                        <th class="day-col-header py-3 px-3 text-center border-r border-slate-800 last:border-r-0" data-day="{{ day_num }}">
+                            {{ day_name }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-xs">
+                    {% for ts in timeslots %}
+                    <tr class="{% if ts.is_break %}bg-amber-50/70{% else %}hover:bg-slate-50/50{% endif %} transition">
+                        <!-- Period Column -->
+                        <td class="py-3 px-3 text-center border-r border-slate-200 font-semibold text-slate-600 bg-slate-50/80">
+                            <span class="block text-xs font-bold text-slate-800">P{{ ts.period_number }}</span>
+                            <span class="text-[10px] text-slate-500 block leading-tight">{{ ts.start_time|time:"g:i A" }} - {{ ts.end_time|time:"g:i A" }}</span>
+                        </td>
+
+                        {% if ts.is_break %}
+                            <td colspan="5" class="py-2.5 px-4 text-center font-bold text-amber-800 bg-amber-100/40 border-r border-slate-200">
+                                <i class="fa-solid fa-mug-hot text-amber-600 mr-1.5"></i>
+                                {{ ts.label }}
+                            </td>
+                        {% else %}
+                            {% for day_num, day_name in days %}
+                            <td class="day-cell py-2 px-2 border-r border-slate-200 align-top last:border-r-0" data-day="{{ day_num }}">
+                                {% with key_val=day_num|stringformat:"i" %}
+                                {% with full_key=day_num|stringformat:"i"|add:","|add:ts.period_number|stringformat:"i" %}
+                                
+                                {% for (item_day, item_period), item in grid.items %}
+                                    {% if item_day == day_num and item_period == ts.period_number %}
+                                    <div class="p-2.5 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white shadow-sm space-y-1.5 relative group hover:border-deped-blue transition">
+                                        <div class="flex items-start justify-between">
+                                            <span class="font-extrabold text-[11px] text-deped-darkblue line-clamp-1 leading-snug">
+                                                {{ item.subject.title }}
+                                            </span>
+                                            <button onclick="toggleLock({{ item.id }})" class="p-0.5 text-slate-400 hover:text-amber-600 transition" title="{% if item.is_locked %}Locked{% else %}Click to lock slot{% endif %}">
+                                                <i class="fa-solid {% if item.is_locked %}fa-lock text-amber-600{% else %}fa-lock-open opacity-40 group-hover:opacity-100{% endif %} text-[10px]"></i>
+                                            </button>
+                                        </div>
+
+                                        <div class="space-y-0.5 text-[10px] text-slate-600">
+                                            <div class="flex items-center space-x-1">
+                                                <i class="fa-solid fa-chalkboard-user text-slate-400 text-[9px]"></i>
+                                                <span class="truncate font-semibold">{{ item.teacher.full_name }}</span>
+                                            </div>
+                                            <div class="flex items-center space-x-1">
+                                                <i class="fa-solid fa-people-group text-slate-400 text-[9px]"></i>
+                                                <span class="truncate">{{ item.section.name }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between pt-1 border-t border-blue-50 text-[9px]">
+                                            <span class="px-1.5 py-0.5 rounded font-bold {% if item.room.room_type == 'science_lab' or item.room.room_type == 'computer_lab' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                                {{ item.room.name }}
+                                            </span>
+                                            <button onclick="openSwapModal({{ item.id }}, '{{ item.subject.code }}', {{ item.time_slot.day_of_week }}, {{ item.time_slot.period_number }}, {{ item.room.id }}, {{ item.teacher.id }})" class="text-blue-600 hover:text-deped-blue font-bold opacity-80 group-hover:opacity-100">
+                                                Swap <i class="fa-solid fa-arrow-right-arrow-left text-[8px]"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% endwith %}
+                                {% endwith %}
+                            </td>
+                            {% endfor %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Quick Swap / Manual Adjustment Modal -->
+<div id="swapModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-100 overflow-hidden">
+        <div class="bg-slate-900 p-4 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-arrow-right-arrow-left text-deped-gold"></i>
+                <h3 class="font-bold text-sm">Adjust Schedule Slot</h3>
+            </div>
+            <button onclick="closeSwapModal()" class="text-white/70 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="swapForm" onsubmit="submitSwap(event)" class="p-5 space-y-3.5 text-xs">
+            <input type="hidden" id="swapItemId">
+            
+            <div class="bg-blue-50 p-2.5 rounded-xl text-blue-900 font-semibold" id="swapSubjectLabel">
+                Subject
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 uppercase mb-1">Target Day</label>
+                <select id="swapTargetDay" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 uppercase mb-1">Target Period</label>
+                <select id="swapTargetPeriod" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    <option value="1">Period 1 (7:45 - 8:45 AM)</option>
+                    <option value="2">Period 2 (8:45 - 9:45 AM)</option>
+                    <option value="4">Period 3 (10:00 - 11:00 AM)</option>
+                    <option value="5">Period 4 (11:00 - 12:00 PM)</option>
+                    <option value="7">Period 5 (1:00 - 2:00 PM)</option>
+                    <option value="8">Period 6 (2:00 - 3:00 PM)</option>
+                    <option value="9">Period 7 (3:00 - 4:00 PM)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 uppercase mb-1">Assigned Room</label>
+                <select id="swapTargetRoom" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    {% for r in rooms %}
+                    <option value="{{ r.id }}">{{ r.name }} [{{ r.get_room_type_display }}]</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 uppercase mb-1">Assigned Teacher</label>
+                <select id="swapTargetTeacher" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    {% for t in teachers %}
+                    <option value="{{ t.id }}">{{ t.full_name }} ({{ t.department.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2">
+                <button type="button" onclick="closeSwapModal()" class="w-1/2 py-2 rounded-xl border border-slate-300 font-bold text-slate-700">Cancel</button>
+                <button type="submit" class="w-1/2 py-2 rounded-xl bg-deped-blue text-white font-bold hover:bg-deped-darkblue shadow">Apply Swap</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function filterMobileDay(day) {
+        // Update active day pill
+        document.querySelectorAll('.day-pill').forEach(btn => {
+            if (btn.getAttribute('data-day') === String(day)) {
+                btn.className = 'day-pill active px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-deped-blue text-white';
+            } else {
+                btn.className = 'day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200';
+            }
+        });
+
+        // Hide or show columns
+        const headers = document.querySelectorAll('.day-col-header');
+        const cells = document.querySelectorAll('.day-cell');
+
+        if (day === 'all') {
+            headers.forEach(h => h.classList.remove('hidden'));
+            cells.forEach(c => c.classList.remove('hidden'));
+        } else {
+            headers.forEach(h => {
+                if (h.getAttribute('data-day') === String(day)) h.classList.remove('hidden');
+                else h.classList.add('hidden');
+            });
+            cells.forEach(c => {
+                if (c.getAttribute('data-day') === String(day)) c.classList.remove('hidden');
+                else c.classList.add('hidden');
+            });
+        }
+    }
+
+    function openSwapModal(itemId, subjectCode, currentDay, currentPeriod, roomId, teacherId) {
+        document.getElementById('swapItemId').value = itemId;
+        document.getElementById('swapSubjectLabel').textContent = `Adjusting: ${subjectCode}`;
+        document.getElementById('swapTargetDay').value = currentDay;
+        document.getElementById('swapTargetPeriod').value = currentPeriod;
+        document.getElementById('swapTargetRoom').value = roomId;
+        document.getElementById('swapTargetTeacher').value = teacherId;
+
+        const modal = document.getElementById('swapModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeSwapModal() {
+        const modal = document.getElementById('swapModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function submitSwap(e) {
+        e.preventDefault();
+        const itemId = document.getElementById('swapItemId').value;
+        const targetDay = document.getElementById('swapTargetDay').value;
+        const targetPeriod = document.getElementById('swapTargetPeriod').value;
+        const targetRoomId = document.getElementById('swapTargetRoom').value;
+        const targetTeacherId = document.getElementById('swapTargetTeacher').value;
+
+        const formData = new FormData();
+        formData.append('item_id', itemId);
+        formData.append('target_day', targetDay);
+        formData.append('target_period', targetPeriod);
+        formData.append('target_room_id', targetRoomId);
+        formData.append('target_teacher_id', targetTeacherId);
+
+        try {
+            const res = await fetch("{% url 'api_swap_item' %}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                closeSwapModal();
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                showToast(data.message || 'Swap conflict detected!', true);
+            }
+        } catch (err) {
+            showToast('Network error while applying swap', true);
+        }
+    }
+
+    async function toggleLock(itemId) {
+        const formData = new FormData();
+        formData.append('item_id', itemId);
+        try {
+            const res = await fetch("{% url 'api_toggle_lock' %}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.is_locked ? 'Slot locked against AI regeneration' : 'Slot unlocked for AI optimization');
+                setTimeout(() => window.location.reload(), 600);
+            }
+        } catch (err) {
+            showToast('Failed to toggle lock', true);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,196 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Dashboard | CLASSMATE-AI DepEd Scheduling{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Hero / Welcome Banner -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-deped-darkblue via-deped-blue to-blue-700 text-white p-6 sm:p-8 shadow-xl shadow-blue-900/10 border border-blue-600/30">
+        <div class="relative z-10 max-w-2xl space-y-3">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur text-xs font-bold text-deped-gold border border-white/20">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>DepEd DO 005 s. 2024 & Strengthened SHS Compliant</span>
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold font-heading tracking-tight leading-tight">
+                AI Automated Timetable & Faculty Load Engine
+            </h1>
+            <p class="text-blue-100 text-sm sm:text-base leading-relaxed">
+                Seamless hybrid scheduling across Junior High School (Grades 7–10) and the new Strengthened Senior High School 3-Term Trimester Model.
+            </p>
+            <div class="flex flex-wrap gap-2.5 pt-2">
+                <button onclick="openGaModal()" class="px-5 py-2.5 rounded-xl bg-deped-gold text-slate-900 font-extrabold text-sm hover:bg-yellow-400 shadow-md transition active:scale-95 flex items-center space-x-2">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Run Genetic Algorithm</span>
+                </button>
+                <a href="{% url 'timetable' %}" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm backdrop-blur transition flex items-center space-x-2 border border-white/20">
+                    <i class="fa-solid fa-calendar-week"></i>
+                    <span>Open Timetable Studio</span>
+                </a>
+                <a href="{% url 'export_excel' %}" class="px-4 py-2.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white font-bold text-sm shadow transition flex items-center space-x-2">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Export Excel</span>
+                </a>
+            </div>
+        </div>
+        <!-- Decorative subtle watermark -->
+        <div class="absolute -right-8 -bottom-10 opacity-10 text-white text-9xl font-black select-none pointer-events-none">
+            <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+    </div>
+
+    <!-- Executive Metrics Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <!-- Metric 1: Schedule Health & Hard Conflicts -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Hard Conflicts</span>
+                <div class="w-8 h-8 rounded-lg {% if hard_conflicts == 0 %}bg-emerald-50 text-emerald-600{% else %}bg-red-50 text-red-600{% endif %} flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid {% if hard_conflicts == 0 %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="text-3xl font-extrabold font-heading {% if hard_conflicts == 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                    {{ hard_conflicts }}
+                </span>
+                <span class="text-xs font-semibold {% if hard_conflicts == 0 %}text-emerald-700 bg-emerald-100/60{% else %}text-red-700 bg-red-100/60{% endif %} px-2 py-0.5 rounded-md ml-2">
+                    {% if hard_conflicts == 0 %}Zero Collisions{% else %}Needs Re-run{% endif %}
+                </span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Teacher, Room & Section overlaps</p>
+        </div>
+
+        <!-- Metric 2: Fitness Score -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Fitness Score</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-deped-blue flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="text-3xl font-extrabold font-heading text-deped-darkblue">{{ fitness|floatformat:1 }}%</span>
+                <span class="text-xs font-semibold text-blue-700 bg-blue-100/60 px-2 py-0.5 rounded-md ml-2">
+                    {% if fitness >= 90 %}High Optimization{% else %}Moderate{% endif %}
+                </span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Soft constraints & teacher preference score</p>
+        </div>
+
+        <!-- Metric 3: Total Faculty Teachers -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Teaching Faculty</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="text-3xl font-extrabold font-heading text-slate-800">{{ total_teachers }}</span>
+                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md ml-2">Active</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Max 6h daily teaching workload enforced</p>
+        </div>
+
+        <!-- Metric 4: Sections & Classrooms -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Classes & Rooms</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-school"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="text-3xl font-extrabold font-heading text-slate-800">{{ total_sections }}</span>
+                <span class="text-xs text-purple-700 bg-purple-100/60 font-semibold px-2 py-0.5 rounded-md ml-1.5">{{ total_rooms }} Rooms</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">{{ jhs_sections }} JHS + {{ shs_sections }} SSHS Sections</p>
+        </div>
+    </div>
+
+    <!-- Curriculum Alignment Feature Card -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left 2 Cols: Active Timetable Summary & Quick Actions -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="font-heading font-bold text-lg text-slate-900">Current Active Master Schedule</h2>
+                    <p class="text-xs text-slate-500">
+                        {% if schedule %}{{ schedule.name }}{% else %}No schedule generated yet{% endif %}
+                    </p>
+                </div>
+                <span class="text-xs font-bold uppercase px-3 py-1 rounded-full {% if schedule.status == 'published' %}bg-emerald-100 text-emerald-800 border border-emerald-300{% else %}bg-amber-100 text-amber-800 border border-amber-300{% endif %}">
+                    {{ schedule.get_status_display }}
+                </span>
+            </div>
+
+            <!-- Visual Progress Breakdown -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <span class="text-xs text-slate-500 font-bold block">Assigned Periods</span>
+                    <span class="text-2xl font-extrabold text-deped-darkblue font-heading">{{ total_scheduled_items }}</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Classes booked this week</span>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <span class="text-xs text-slate-500 font-bold block">Soft Penalty Index</span>
+                    <span class="text-2xl font-extrabold text-slate-700 font-heading">{{ soft_conflicts }}</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Preference adjustments</span>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <span class="text-xs text-slate-500 font-bold block">Academic Framework</span>
+                    <span class="text-sm font-bold text-slate-800 mt-1 block">SSHS Trimester + JHS</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Term 1 Active</span>
+                </div>
+            </div>
+
+            <!-- Quick Access Navigation Buttons -->
+            <div class="pt-2 flex flex-wrap gap-3">
+                <a href="{% url 'timetable' %}" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs sm:text-sm font-bold transition text-center flex items-center justify-center space-x-2 border border-slate-200 group">
+                    <i class="fa-solid fa-table-cells text-slate-400 group-hover:text-deped-gold transition"></i>
+                    <span>Interactive Timetable</span>
+                </a>
+                <a href="{% url 'teacher_loads' %}" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs sm:text-sm font-bold transition text-center flex items-center justify-center space-x-2 border border-slate-200 group">
+                    <i class="fa-solid fa-id-card-clip text-slate-400 group-hover:text-deped-gold transition"></i>
+                    <span>DepEd SF7 Teacher Loads</span>
+                </a>
+                <a href="{% url 'room_utilization' %}" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs sm:text-sm font-bold transition text-center flex items-center justify-center space-x-2 border border-slate-200 group">
+                    <i class="fa-solid fa-flask-vial text-slate-400 group-hover:text-deped-gold transition"></i>
+                    <span>Lab & Room Utilization</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right 1 Col: Strengthened SHS Cluster Architecture -->
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white border border-slate-700 shadow-md space-y-4">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-deped-gold">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <h3 class="font-heading font-bold text-base">SSHS Structure</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Under the Strengthened Senior High School (SSHS) program, traditional isolated strands are unified into dynamic clusters:
+            </p>
+            <div class="space-y-2.5 text-xs">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span class="font-bold text-blue-300">1. Core Curricular</span>
+                    <span class="text-slate-400 text-[10px]">Universal</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span class="font-bold text-emerald-300">2. STEM Cluster</span>
+                    <span class="text-slate-400 text-[10px]">Calc, Physics, Data</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span class="font-bold text-amber-300">3. Arts & Social Sciences</span>
+                    <span class="text-slate-400 text-[10px]">Lit, Phil, Civics</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span class="font-bold text-purple-300">4. Tech-Pro (TVL)</span>
+                    <span class="text-slate-400 text-[10px]">DBMS, Robotics, TLE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

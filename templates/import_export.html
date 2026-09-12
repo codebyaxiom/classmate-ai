@@ -1,0 +1,105 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Import & Export Suite | CLASSMATE-AI{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 flex items-center space-x-2">
+            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+            <span>Bulk Data Import & Official Export Center</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-0.5">
+            Quickly onboard faculty and classroom rosters from Excel/CSV, or generate DepEd-compliant master timetable sheets.
+        </p>
+    </div>
+
+    <!-- Export Section -->
+    <div class="bg-gradient-to-r from-emerald-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-950/10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="space-y-2 max-w-xl">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+                <span>One-Click Export</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-extrabold font-heading">Download Complete School Timetable</h2>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Generates a multi-sheet Excel spreadsheet containing the Master Timetable, Section Schedules, Teacher Workloads, and Facility Utilization.
+            </p>
+        </div>
+        <a href="{% url 'export_excel' %}" class="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg transition active:scale-95 flex items-center space-x-2 shrink-0">
+            <i class="fa-solid fa-file-excel text-lg"></i>
+            <span>Export to Excel (.xlsx)</span>
+        </a>
+    </div>
+
+    <!-- Import Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Card 1: Import Teachers -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-deped-blue flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading font-bold text-base text-slate-900">Import Faculty Roster</h3>
+                    <p class="text-xs text-slate-400">Bulk upload teachers via CSV</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-2">
+                <p class="font-semibold">Required Columns: <code class="bg-white px-1.5 py-0.5 rounded border">employee_id</code>, <code class="bg-white px-1.5 py-0.5 rounded border">first_name</code>, <code class="bg-white px-1.5 py-0.5 rounded border">last_name</code>, <code class="bg-white px-1.5 py-0.5 rounded border">email</code>, <code class="bg-white px-1.5 py-0.5 rounded border">max_daily_hours</code></p>
+                <a href="{% url 'download_sample' 'teachers' %}" class="inline-flex items-center space-x-1 text-deped-blue hover:underline font-bold text-xs">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download Sample Teachers CSV</span>
+                </a>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="entity_type" value="teachers">
+                <div>
+                    <input type="file" name="csv_file" accept=".csv" required class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-deped-blue hover:file:bg-blue-100 cursor-pointer">
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow transition">
+                    Upload & Process Teachers
+                </button>
+            </form>
+        </div>
+
+        <!-- Card 2: Import Rooms -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-door-open"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading font-bold text-base text-slate-900">Import Rooms & Labs</h3>
+                    <p class="text-xs text-slate-400">Bulk upload classrooms via CSV</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-2">
+                <p class="font-semibold">Required Columns: <code class="bg-white px-1.5 py-0.5 rounded border">name</code>, <code class="bg-white px-1.5 py-0.5 rounded border">room_type</code>, <code class="bg-white px-1.5 py-0.5 rounded border">capacity</code>, <code class="bg-white px-1.5 py-0.5 rounded border">building</code></p>
+                <a href="{% url 'download_sample' 'rooms' %}" class="inline-flex items-center space-x-1 text-amber-700 hover:underline font-bold text-xs">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download Sample Rooms CSV</span>
+                </a>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="entity_type" value="rooms">
+                <div>
+                    <input type="file" name="csv_file" accept=".csv" required class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition">
+                    Upload & Process Rooms
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
