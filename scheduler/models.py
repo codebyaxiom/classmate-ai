@@ -144,7 +144,7 @@ class Subject(models.Model):
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
     room_type_needed = models.CharField(max_length=60, default='lecture')
     weekly_periods = models.FloatField(default=4.0, help_text="Number of 1-hour periods per week (supports decimals like 1.5, 4.5)")
-    consecutive_periods = models.IntegerField(default=1, help_text="1 for standard, 2 for double-period lab/workshop")
+    consecutive_periods = models.IntegerField(default=1, help_text="1 for standard single period, 2 for continuous 1.5-hour lab/practicum block")
     is_lab = models.BooleanField(default=False)
 
     @property
