@@ -263,7 +263,7 @@ class ClassmateAITestSuite(TestCase):
         profile.refresh_from_db()
         self.assertEqual(profile.school_name, 'ISABELA NATIONAL HIGH SCHOOL')
 
-    def test_add_and_delete_room_api(self):
+    def test_add_update_and_delete_room_api(self):
         res = self.client.post(reverse('api_add_room'), {
             'name': 'Science Lab Delta',
             'room_type': 'science_lab',
@@ -274,6 +274,25 @@ class ClassmateAITestSuite(TestCase):
         self.assertTrue(data['success'])
         room_id = data['room_id']
         self.assertTrue(Room.objects.filter(id=room_id).exists())
+
+        # Update room
+        res_update = self.client.post(reverse('api_update_room', args=[room_id]), {
+            'name': 'Science Lab Delta - Upgraded',
+            'room_type': 'science_lab',
+            'building': 'STEM Complex',
+            'capacity': 60,
+        })
+        self.assertTrue(res_update.json()['success'])
+        updated_room = Room.objects.get(id=room_id)
+        self.assertEqual(updated_room.name, 'Science Lab Delta - Upgraded')
+        self.assertEqual(updated_room.building, 'STEM Complex')
+        self.assertEqual(updated_room.capacity, 60)
+
+        # Update room with empty name fails
+        res_empty = self.client.post(reverse('api_update_room', args=[room_id]), {
+            'name': '',
+        })
+        self.assertFalse(res_empty.json()['success'])
 
         # Delete room
         res_del = self.client.post(reverse('api_delete_room', args=[room_id]))

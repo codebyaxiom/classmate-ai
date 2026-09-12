@@ -42,6 +42,7 @@ urlpatterns = [
     path('api/settings/reset/', views.reset_settings_api, name='api_reset_settings'),
     path('api/settings/policy/', views.update_workload_policy_api, name='api_update_workload_policy'),
     path('api/rooms/add/', views.add_room_api, name='api_add_room'),
+    path('api/rooms/update/<int:room_id>/', views.update_room_api, name='api_update_room'),
     path('api/rooms/delete/<int:room_id>/', views.delete_room_api, name='api_delete_room'),
     path('api/facility-types/add/', views.add_facility_type_api, name='api_add_facility_type'),
     path('api/facility-types/delete/<int:ft_id>/', views.delete_facility_type_api, name='api_delete_facility_type'),

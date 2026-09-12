@@ -1816,6 +1816,46 @@ def add_room_api(request):
 
 
 @csrf_exempt
+def update_room_api(request, room_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    room = get_object_or_404(Room, id=room_id)
+    name = request.POST.get('name', '').strip()
+    room_type = request.POST.get('room_type', 'lecture').strip()
+    building = request.POST.get('building', '').strip()
+    try:
+        capacity = int(request.POST.get('capacity', 45))
+    except (ValueError, TypeError):
+        capacity = 45
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Classroom / Room name is required.'})
+
+    if Room.objects.filter(name__iexact=name).exclude(id=room.id).exists():
+        return JsonResponse({'success': False, 'message': f'Another classroom named "{name}" already exists.'})
+
+    old_name = room.name
+    room.name = name
+    room.room_type = room_type
+    room.building = building
+    room.capacity = capacity
+    room.save()
+
+    AuditLog.objects.create(
+        action="Classroom Updated",
+        details=f"Updated room '{old_name}' -> '{room.name}' ({room.get_room_type_display()}, Capacity: {capacity}) in {building}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Classroom "{room.name}" updated successfully!',
+        'room_id': room.id,
+        'room_name': room.name,
+    })
+
+
+@csrf_exempt
 def delete_room_api(request, room_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
