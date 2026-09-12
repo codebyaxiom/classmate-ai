@@ -146,6 +146,7 @@ class GeneticTimetableScheduler:
         room_day_intervals = defaultdict(list)
         teacher_daily_load = defaultdict(lambda: defaultdict(int))
         section_daily_subj = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+        section_day_subj_periods = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
         for gene in individual.genes:
             ts = self.all_timeslots.get(gene.timeslot_id)
@@ -165,6 +166,7 @@ class GeneticTimetableScheduler:
             room_day_intervals[(gene.room_id, day)].append((ts.start_time, ts.end_time, ts.id))
             teacher_daily_load[gene.teacher_id][day] += 1
             section_daily_subj[gene.section_id][day][gene.subject_id] += 1
+            section_day_subj_periods[gene.section_id][day][gene.subject_id].append(ts.period_number)
 
             # Room type match constraint
             subj = self.subjects_by_id.get(gene.subject_id)
@@ -240,6 +242,17 @@ class GeneticTimetableScheduler:
                 for sub_id, count in subjs.items():
                     if count > 2:
                         soft_penalties += 20 * (count - 2)
+
+        # Soft Constraint: Double-Period Consecutive Blocks (Science Labs, TVL, Programming)
+        for s_id, days in section_day_subj_periods.items():
+            for day, subjs in days.items():
+                for sub_id, periods_list in subjs.items():
+                    subj = self.subjects_by_id.get(sub_id)
+                    if subj and subj.consecutive_periods > 1 and len(periods_list) >= 2:
+                        periods_list.sort()
+                        is_adjacent = any(periods_list[i+1] - periods_list[i] == 1 for i in range(len(periods_list)-1))
+                        if not is_adjacent:
+                            soft_penalties += 30
 
         total_penalty = hard_penalties + soft_penalties
         individual.fitness = max(0.0, 100.0 - (total_penalty / 100.0))
