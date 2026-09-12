@@ -42,6 +42,29 @@
         </div>
     </div>
 
+    <!-- Setup Prerequisite Helper Banner -->
+    {% if not periods %}
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-blue-950 shadow-sm">
+        <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-blue-100 text-deped-blue flex items-center justify-center text-sm shrink-0 mt-0.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold block">Setup Sequence Tip: Establish Grade Bell Schedules</span>
+                <span class="text-[11px] text-blue-800">
+                    Define periods for this grade level using our 1-click presets (e.g., JHS 60-min Standard, SSHS 90-min Block) or copy an existing schedule from another grade.
+                </span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openPresetModal()" class="px-3.5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-bolt text-deped-gold"></i>
+                <span>Load Bell Preset</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Grade Level Switcher Tabs -->
     <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm overflow-x-auto">
         <div class="flex items-center space-x-2 min-w-max">

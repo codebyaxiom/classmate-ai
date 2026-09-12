@@ -51,6 +51,108 @@
         </div>
     </div>
 
+    <!-- System Setup & Readiness Workflow Stepper -->
+    <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-extrabold bg-blue-50 text-deped-blue border border-blue-200">
+                        <i class="fa-solid fa-route mr-1"></i>Guided Setup Sequence
+                    </span>
+                    <span class="text-xs font-bold {% if readiness.is_fully_ready %}text-emerald-700 bg-emerald-50 border border-emerald-200{% else %}text-amber-700 bg-amber-50 border border-amber-200{% endif %} px-2.5 py-0.5 rounded-full">
+                        {% if readiness.is_fully_ready %}
+                            <i class="fa-solid fa-circle-check mr-1 text-emerald-500"></i>Ready for Deployment
+                        {% else %}
+                            <i class="fa-solid fa-spinner fa-spin mr-1 text-amber-500"></i>{{ readiness.completed_count }}/{{ readiness.total_count }} Steps Completed
+                        {% endif %}
+                    </span>
+                </div>
+                <h2 class="text-lg sm:text-xl font-heading font-extrabold text-slate-900 mt-1.5 flex items-center space-x-2">
+                    <i class="fa-solid fa-list-check text-deped-blue"></i>
+                    <span>DepEd School Setup & Timetable Readiness Guide</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Follow this logical sequence to establish foundations, bell schedules, curriculum, faculty, and sections without missing dependencies.
+                </p>
+            </div>
+
+            <!-- Progress Meter -->
+            <div class="flex flex-col items-start md:items-end shrink-0">
+                <div class="flex items-baseline space-x-1.5">
+                    <span class="text-2xl font-black font-heading text-deped-darkblue">{{ readiness.readiness_percentage }}%</span>
+                    <span class="text-xs font-bold text-slate-400 uppercase">Readiness</span>
+                </div>
+                <div class="w-48 sm:w-56 bg-slate-100 h-2.5 rounded-full overflow-hidden mt-1.5 border border-slate-200/60">
+                    <div class="bg-gradient-to-r from-deped-blue to-emerald-500 h-full rounded-full transition-all duration-500" style="width: {{ readiness.readiness_percentage }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6 Sequential Dependency Steps Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            {% for step in readiness.steps %}
+            <div class="rounded-2xl p-4 flex flex-col justify-between transition relative {% if step.is_completed %}bg-emerald-50/40 border border-emerald-200 hover:border-emerald-300{% elif step.is_current %}bg-blue-50/50 border-2 border-deped-blue shadow-md shadow-blue-500/10 ring-2 ring-blue-400/20{% else %}bg-slate-50/70 border border-slate-200/80 opacity-75{% endif %}">
+                <!-- Step Header: Number & Status Icon -->
+                <div class="flex items-center justify-between">
+                    <span class="w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center {% if step.is_completed %}bg-emerald-600 text-white{% elif step.is_current %}bg-deped-blue text-white shadow-sm{% else %}bg-slate-200 text-slate-600{% endif %}">
+                        {{ step.step_num }}
+                    </span>
+                    <div>
+                        {% if step.is_completed %}
+                            <span class="inline-flex items-center space-x-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                                <i class="fa-solid fa-check text-[9px]"></i>
+                                <span>Done</span>
+                            </span>
+                        {% elif step.is_current %}
+                            <span class="inline-flex items-center space-x-1.5 text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md animate-pulse">
+                                <span class="w-1.5 h-1.5 rounded-full bg-deped-blue"></span>
+                                <span>Current</span>
+                            </span>
+                        {% else %}
+                            <span class="text-[10px] font-semibold text-slate-400">
+                                Pending
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Step Title & Description -->
+                <div class="my-3 space-y-1">
+                    <div class="flex items-center space-x-1.5">
+                        <i class="{{ step.icon }} text-xs {% if step.is_completed %}text-emerald-600{% elif step.is_current %}text-deped-blue{% else %}text-slate-400{% endif %}"></i>
+                        <h3 class="text-xs font-bold {% if step.is_completed %}text-emerald-900{% elif step.is_current %}text-deped-darkblue font-extrabold{% else %}text-slate-700{% endif %} leading-snug">
+                            {{ step.title }}
+                        </h3>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-tight">
+                        {{ step.desc }}
+                    </p>
+                    <div class="pt-1">
+                        <span class="text-[10px] font-semibold {% if step.is_completed %}text-emerald-700{% elif step.is_current %}text-deped-blue font-bold{% else %}text-slate-400{% endif %}">
+                            {{ step.stat_badge }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="pt-2 border-t {% if step.is_completed %}border-emerald-100{% elif step.is_current %}border-blue-100{% else %}border-slate-200/60{% endif %}">
+                    {% if step.is_ai_action and not step.is_completed %}
+                        <button onclick="openGaModal()" class="w-full py-1.5 px-2.5 rounded-xl text-center text-xs font-bold transition {% if step.is_current %}bg-deped-blue hover:bg-deped-darkblue text-white shadow-sm{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %} flex items-center justify-center space-x-1">
+                            <span>{{ step.action_label }}</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
+                    {% else %}
+                        <a href="{{ step.url }}" class="w-full py-1.5 px-2.5 rounded-xl text-center text-xs font-bold transition {% if step.is_current %}bg-deped-blue hover:bg-deped-darkblue text-white shadow-sm{% elif step.is_completed %}bg-emerald-100/60 hover:bg-emerald-100 text-emerald-800{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %} flex items-center justify-center space-x-1">
+                            <span>{{ step.action_label }}</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Executive Metrics Grid -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <!-- Metric 1: Schedule Health & Hard Conflicts -->

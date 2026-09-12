@@ -29,6 +29,43 @@
         </div>
     </div>
 
+    <!-- Setup Prerequisite Helper Banner -->
+    {% if not rooms or not teachers or not subjects %}
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-sm">
+        <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold block">Setup Sequence Recommendation: Complete Prerequisites First</span>
+                <span class="text-[11px] text-amber-800">
+                    To establish class sections effectively, you need:
+                    {% if not rooms %}<strong>Classrooms</strong> (in Facilities), {% endif %}
+                    {% if not subjects %}<strong>Curriculum Subjects</strong>, {% endif %}
+                    {% if not teachers %}<strong>Faculty Teachers</strong> (for Class Advisers & teaching loads).{% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            {% if not rooms %}
+            <a href="{% url 'settings' %}#facilities" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm">
+                + Add Rooms
+            </a>
+            {% endif %}
+            {% if not subjects %}
+            <a href="{% url 'subjects' %}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm">
+                + Add Subjects
+            </a>
+            {% endif %}
+            {% if not teachers %}
+            <a href="{% url 'teachers' %}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm">
+                + Add Teachers
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Search & Filter Controls -->
     <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
         <form method="GET" action="{% url 'sections' %}" class="flex-1 w-full flex flex-col sm:flex-row items-center gap-3">

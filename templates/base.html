@@ -53,8 +53,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <!-- Brand & Logo -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-deped-blue to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <a href="{% url 'dashboard' %}" class="flex items-center space-x-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-deped-blue to-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition">
                         <i class="fa-solid fa-graduation-cap text-lg text-deped-gold"></i>
                     </div>
                     <div>
@@ -62,50 +62,265 @@
                             <span class="font-heading font-extrabold text-xl text-deped-darkblue tracking-tight">CLASSMATE<span class="text-blue-600">-AI</span></span>
                             <span class="text-[10px] uppercase font-bold bg-deped-gold/20 text-amber-800 px-2 py-0.5 rounded-full border border-deped-gold/30">DepEd SSHS</span>
                         </div>
-                        <p class="text-[11px] text-slate-500 font-medium hidden sm:block">Automated Teaching Load & Timetable Optimizer</p>
+                        <p class="text-[11px] text-slate-500 font-medium hidden lg:block">Automated Teaching Load & Timetable Optimizer</p>
                     </div>
-                </div>
+                </a>
 
-                <!-- Desktop Navigation Links -->
-                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
-                    <a href="{% url 'dashboard' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'dashboard' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-gauge-high mr-1.5"></i>Dashboard
+                <!-- Desktop Navigation: Streamlined Categorized Groups -->
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-1.5" id="desktopNav">
+                    <!-- 1. Dashboard -->
+                    <a href="{% url 'dashboard' %}" class="px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center space-x-1.5 {% if request.resolver_match.url_name == 'dashboard' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-gauge-high text-xs"></i>
+                        <span>Dashboard</span>
                     </a>
-                    <a href="{% url 'timetable' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'timetable' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-calendar-days mr-1.5"></i>Timetable Studio
-                    </a>
-                    <a href="{% url 'teachers' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'teachers' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-users-gear mr-1.5"></i>Faculty Desk
-                    </a>
-                    <a href="{% url 'sections' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'sections' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-people-roof mr-1.5"></i>Sections
-                    </a>
-                    <a href="{% url 'timeframes' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'timeframes' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-clock mr-1.5"></i>Timeframes
-                    </a>
-                    <a href="{% url 'subjects' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'subjects' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-book-open-reader mr-1.5"></i>Subjects
-                    </a>
-                    <a href="{% url 'teacher_loads' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'teacher_loads' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-chalkboard-user mr-1.5"></i>Teacher Loads (SF7)
-                    </a>
-                    <a href="{% url 'room_utilization' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'room_utilization' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-door-open mr-1.5"></i>Rooms
-                    </a>
-                    <a href="{% url 'settings' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'settings' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-gear mr-1.5"></i>Settings
-                    </a>
-                    <a href="{% url 'import_export' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'import_export' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-file-excel mr-1.5"></i>Data
+
+                    <!-- 2. Academic Setup Dropdown -->
+                    <div class="relative group dropdown-container">
+                        <button type="button" class="dropdown-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center space-x-1.5 {% if request.resolver_match.url_name == 'timeframes' or request.resolver_match.url_name == 'subjects' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                            <i class="fa-solid fa-school-flag text-xs"></i>
+                            <span>Academic Setup</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] ml-0.5 transition-transform group-hover:rotate-180"></i>
+                        </button>
+                        <div class="dropdown-menu absolute left-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <a href="{% url 'timeframes' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'timeframes' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 text-deped-blue flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Bell Schedules & Timeframes</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Period presets & grade shifts</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'subjects' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'subjects' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-book-open-reader"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Curriculum & Subjects</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Core, applied, & lab specs</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'settings' %}#facilities" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition text-slate-700">
+                                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-door-open"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Classrooms & Facilities</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Room inventory & lab types</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'settings' %}#clusters" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition text-slate-700">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-layer-group"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Curriculum Clusters</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">SSHS & JHS specialized tracks</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 3. Faculty & Classes Dropdown -->
+                    <div class="relative group dropdown-container">
+                        <button type="button" class="dropdown-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center space-x-1.5 {% if request.resolver_match.url_name == 'teachers' or request.resolver_match.url_name == 'sections' or request.resolver_match.url_name == 'teacher_loads' or request.resolver_match.url_name == 'print_sf7' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                            <i class="fa-solid fa-users-gear text-xs"></i>
+                            <span>Faculty & Classes</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] ml-0.5 transition-transform group-hover:rotate-180"></i>
+                        </button>
+                        <div class="dropdown-menu absolute left-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <a href="{% url 'teachers' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'teachers' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 text-deped-blue flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-chalkboard-user"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Faculty Roster</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Teaching staff & ancillary duties</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'sections' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'sections' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-people-roof"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Class Sections</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Homeroom & subject allocations</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'teacher_loads' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'teacher_loads' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-id-card-clip"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">SF7 Workload Matrix</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">DepEd Magna Carta compliance</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. Timetable & Reports Dropdown -->
+                    <div class="relative group dropdown-container">
+                        <button type="button" class="dropdown-btn px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center space-x-1.5 {% if request.resolver_match.url_name == 'timetable' or request.resolver_match.url_name == 'room_utilization' or request.resolver_match.url_name == 'import_export' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                            <i class="fa-solid fa-calendar-days text-xs"></i>
+                            <span>Timetable & Reports</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] ml-0.5 transition-transform group-hover:rotate-180"></i>
+                        </button>
+                        <div class="dropdown-menu absolute left-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <a href="{% url 'timetable' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'timetable' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-table-cells"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Timetable Studio</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Interactive schedule & conflict auditor</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'room_utilization' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'room_utilization' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-door-open"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Room Utilization</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">Facility heatmaps & vacant slots</span>
+                                </div>
+                            </a>
+                            <a href="{% url 'import_export' %}" class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 transition {% if request.resolver_match.url_name == 'import_export' %}bg-blue-50/70 text-deped-blue font-bold{% else %}text-slate-700{% endif %}">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 text-deped-blue flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-file-excel"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-bold leading-tight">Import & Export Data</span>
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">CSV/Excel bulk sync & backups</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 5. Settings -->
+                    <a href="{% url 'settings' %}" class="px-3 py-2 rounded-xl text-xs lg:text-sm font-semibold transition flex items-center space-x-1.5 {% if request.resolver_match.url_name == 'settings' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-gear text-xs"></i>
+                        <span>Settings</span>
                     </a>
                 </nav>
 
-                <!-- Quick Action Button -->
+                <!-- Quick Action & Mobile Menu Toggle -->
                 <div class="flex items-center space-x-2">
-                    <button onclick="openGaModal()" class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-deped-blue text-white shadow-md shadow-blue-600/25 hover:from-blue-700 hover:to-deped-darkblue transition active:scale-95">
+                    <button onclick="openGaModal()" class="inline-flex items-center px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-deped-blue text-white shadow-md shadow-blue-600/25 hover:from-blue-700 hover:to-deped-darkblue transition active:scale-95">
                         <i class="fa-solid fa-bolt text-deped-gold mr-1.5 animate-pulse"></i>
-                        <span>Run AI Optimizer</span>
+                        <span class="hidden sm:inline">Run AI Optimizer</span>
+                        <span class="sm:hidden">Optimize</span>
                     </button>
+                    <!-- Mobile Hamburger Button -->
+                    <button type="button" id="mobileMenuToggleBtn" onclick="toggleMobileDrawer()" class="md:hidden p-2 rounded-xl text-slate-600 hover:text-deped-blue hover:bg-slate-100 transition focus:outline-none" aria-label="Toggle Navigation Menu">
+                        <i id="mobileMenuIcon" class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Menu (Slide Down) -->
+        <div id="mobileDrawer" class="hidden md:hidden border-t border-slate-200 bg-white/98 backdrop-blur px-4 pt-3 pb-6 space-y-4 max-h-[80vh] overflow-y-auto shadow-xl">
+            <!-- Mobile Category: Quick Nav -->
+            <div class="grid grid-cols-2 gap-2">
+                <a href="{% url 'dashboard' %}" class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
+                    <i class="fa-solid fa-gauge-high text-deped-blue"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'settings' %}" class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
+                    <i class="fa-solid fa-gear text-slate-600"></i>
+                    <span>Settings Hub</span>
+                </a>
+            </div>
+
+            <!-- Mobile Category: Academic Setup -->
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">Academic Setup</span>
+                <div class="space-y-1">
+                    <a href="{% url 'timeframes' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-clock text-blue-600 w-4"></i>
+                            <span>Bell Schedules & Timeframes</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'subjects' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-book-open-reader text-amber-600 w-4"></i>
+                            <span>Curriculum & Subjects</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'settings' %}#facilities" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-door-open text-purple-600 w-4"></i>
+                            <span>Classrooms & Facilities</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'settings' %}#clusters" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-layer-group text-emerald-600 w-4"></i>
+                            <span>Curriculum Clusters</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mobile Category: Faculty & Classes -->
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">Faculty & Classes</span>
+                <div class="space-y-1">
+                    <a href="{% url 'teachers' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-chalkboard-user text-blue-600 w-4"></i>
+                            <span>Faculty Roster</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'sections' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-people-roof text-purple-600 w-4"></i>
+                            <span>Class Sections</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'teacher_loads' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-id-card-clip text-amber-600 w-4"></i>
+                            <span>Teacher Loads (SF7 Matrix)</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mobile Category: Timetable & Reports -->
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">Timetable & Reports</span>
+                <div class="space-y-1">
+                    <a href="{% url 'timetable' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-table-cells text-emerald-600 w-4"></i>
+                            <span>Timetable Studio</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'room_utilization' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-door-open text-purple-600 w-4"></i>
+                            <span>Room Utilization Heatmap</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
+                    <a href="{% url 'import_export' %}" class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 text-slate-700">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-file-excel text-blue-600 w-4"></i>
+                            <span>Import & Export Data</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -295,6 +510,44 @@
                 startBtn.disabled = false;
             }
         }
+
+        function toggleMobileDrawer() {
+            const drawer = document.getElementById('mobileDrawer');
+            const icon = document.getElementById('mobileMenuIcon');
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-xmark');
+            } else {
+                drawer.classList.add('hidden');
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-bars');
+            }
+        }
+
+        // Toggle dropdowns on click for touch screens/tablets
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.dropdown-container').forEach(container => {
+                const btn = container.querySelector('.dropdown-btn');
+                const menu = container.querySelector('.dropdown-menu');
+                if (btn && menu) {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Close other dropdowns
+                        document.querySelectorAll('.dropdown-menu').forEach(m => {
+                            if (m !== menu) m.classList.add('hidden');
+                        });
+                        menu.classList.toggle('hidden');
+                    });
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown-container')) {
+                    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+                }
+            });
+        });
     </script>
 
     {% block extra_scripts %}{% endblock %}

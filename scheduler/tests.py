@@ -6,6 +6,7 @@ from scheduler.models import (
     CurriculumCluster
 )
 from scheduler.engine.genetic_scheduler import GeneticTimetableScheduler
+from scheduler.views import get_system_readiness_status
 
 class ClassmateAITestSuite(TestCase):
     def setUp(self):
@@ -519,4 +520,74 @@ class ClassmateAITestSuite(TestCase):
         self.assertEqual(res7.status_code, 200)
         self.assertEqual(res7.context['active_grade'], 7)
         self.assertContains(res7, 'Grade 7 (JHS)')
+
+    def test_readiness_calculation_and_stepper(self):
+        # With setUp data (1 room, 1 ay, 1 term, 3 slots, 1 subject, 1 teacher+qual, 1 section+req, 0 schedule items)
+        status = get_system_readiness_status()
+        self.assertEqual(status['completed_count'], 5)
+        self.assertEqual(status['total_count'], 6)
+        self.assertEqual(status['readiness_percentage'], 83)
+        self.assertFalse(status['is_fully_ready'])
+        self.assertEqual(status['next_step']['step_num'], 6)
+        self.assertEqual(status['next_step']['code'], 'timetable')
+
+        # Create schedule item to complete step 6
+        ScheduleItem.objects.create(
+            schedule=self.schedule, section=self.section, subject=self.subject,
+            teacher=self.teacher, room=self.room, time_slot=self.ts1
+        )
+        status_complete = get_system_readiness_status()
+        self.assertEqual(status_complete['completed_count'], 6)
+        self.assertEqual(status_complete['readiness_percentage'], 100)
+        self.assertTrue(status_complete['is_fully_ready'])
+
+    def test_readiness_empty_state(self):
+        # Clear out rooms and check step 1 is pending
+        Room.objects.all().delete()
+        status = get_system_readiness_status()
+        step1 = status['steps'][0]
+        self.assertFalse(step1['is_completed'])
+        self.assertEqual(status['next_step']['step_num'], 1)
+
+    def test_dashboard_renders_readiness_stepper_and_categorized_nav(self):
+        res = self.client.get(reverse('dashboard'))
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('readiness', res.context)
+        # Check stepper elements
+        self.assertContains(res, "DepEd School Setup & Timetable Readiness Guide")
+        self.assertContains(res, "Guided Setup Sequence")
+        self.assertContains(res, "School &amp; Facilities")
+        self.assertContains(res, "Bell Schedules")
+        self.assertContains(res, "Curriculum &amp; Subjects")
+        self.assertContains(res, "Faculty &amp; Qualifications")
+        self.assertContains(res, "Sections &amp; Allocations")
+        self.assertContains(res, "AI Timetable Evolution")
+
+        # Check categorized navbar links & dropdowns
+        self.assertContains(res, "Academic Setup")
+        self.assertContains(res, "Faculty & Classes")
+        self.assertContains(res, "Timetable & Reports")
+        self.assertContains(res, "Run AI Optimizer")
+        self.assertContains(res, reverse('timeframes'))
+        self.assertContains(res, reverse('subjects'))
+        self.assertContains(res, reverse('teachers'))
+        self.assertContains(res, reverse('sections'))
+        self.assertContains(res, reverse('teacher_loads'))
+        self.assertContains(res, reverse('timetable'))
+        self.assertContains(res, reverse('room_utilization'))
+        self.assertContains(res, reverse('import_export'))
+        self.assertContains(res, reverse('settings'))
+
+    def test_in_context_prerequisite_banners(self):
+        # Delete subjects and check teachers page shows recommendation banner
+        Subject.objects.all().delete()
+        res_t = self.client.get(reverse('teachers'))
+        self.assertEqual(res_t.status_code, 200)
+        self.assertContains(res_t, "Setup Sequence Recommendation: Create Curriculum Subjects First")
+
+        # Check sections page shows recommendation banner
+        res_s = self.client.get(reverse('sections'))
+        self.assertEqual(res_s.status_code, 200)
+        self.assertContains(res_s, "Setup Sequence Recommendation: Complete Prerequisites First")
+
 

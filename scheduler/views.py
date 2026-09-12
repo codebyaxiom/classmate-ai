@@ -18,6 +18,134 @@ from .models import (
 )
 from .engine.genetic_scheduler import GeneticTimetableScheduler
 
+def get_system_readiness_status():
+    total_rooms = Room.objects.filter(is_active=True).count()
+    active_ay = AcademicYear.objects.filter(is_active=True).exists()
+    active_term = Term.objects.filter(is_active=True).exists()
+    step1_done = (total_rooms > 0) and active_ay and active_term
+
+    daily_periods_count = TimeSlot.objects.filter(day_of_week=1).count()
+    step2_done = daily_periods_count > 0
+
+    total_subjects = Subject.objects.count()
+    step3_done = total_subjects > 0
+
+    total_teachers = Teacher.objects.filter(is_active=True).count()
+    total_quals = TeacherQualification.objects.count()
+    step4_done = (total_teachers > 0) and (total_quals > 0)
+
+    total_sections = Section.objects.count()
+    assigned_requirements = SectionSubjectRequirement.objects.filter(assigned_teacher__isnull=False).count()
+    step5_done = (total_sections > 0) and (assigned_requirements > 0)
+
+    latest_schedule = Schedule.objects.order_by('-updated_at').first()
+    total_scheduled = ScheduleItem.objects.filter(schedule=latest_schedule).count() if latest_schedule else 0
+    step6_done = total_scheduled > 0
+
+    steps = [
+        {
+            'step_num': 1,
+            'code': 'facilities',
+            'title': 'School & Facilities',
+            'name': '1. School Profile & Facilities',
+            'desc': 'Establish School Profile, active S.Y. & Term, and Room inventory (classrooms & laboratories).',
+            'url': '/settings/#facilities',
+            'icon': 'fa-solid fa-school',
+            'is_completed': step1_done,
+            'stat_badge': f"{total_rooms} Rooms" if total_rooms > 0 else "0 Rooms",
+            'action_label': 'Manage Facilities' if step1_done else 'Set Up Facilities',
+            'is_current': False,
+        },
+        {
+            'step_num': 2,
+            'code': 'timeframes',
+            'title': 'Bell Schedules',
+            'name': '2. Grade Bell Schedules',
+            'desc': 'Define daily teaching periods, bell timeframes, and break intervals across JHS and SHS grade levels.',
+            'url': '/timeframes/',
+            'icon': 'fa-solid fa-clock',
+            'is_completed': step2_done,
+            'stat_badge': f"{daily_periods_count} Periods" if daily_periods_count > 0 else "Not Configured",
+            'action_label': 'View Schedules' if step2_done else 'Create Bell Schedules',
+            'is_current': False,
+        },
+        {
+            'step_num': 3,
+            'code': 'subjects',
+            'title': 'Curriculum & Subjects',
+            'name': '3. Curriculum & Subjects',
+            'desc': 'Configure core, applied, and specialized subjects with weekly hours, lab room requirements, and clusters.',
+            'url': '/subjects/',
+            'icon': 'fa-solid fa-book-open-reader',
+            'is_completed': step3_done,
+            'stat_badge': f"{total_subjects} Subjects" if total_subjects > 0 else "0 Subjects",
+            'action_label': 'Curriculum Hub' if step3_done else 'Add Subjects',
+            'is_current': False,
+        },
+        {
+            'step_num': 4,
+            'code': 'teachers',
+            'title': 'Faculty & Qualifications',
+            'name': '4. Faculty Roster & Loads',
+            'desc': 'Register teaching personnel, assign eligible subject qualifications, and log DepEd ancillary designations.',
+            'url': '/teachers/',
+            'icon': 'fa-solid fa-chalkboard-user',
+            'is_completed': step4_done,
+            'stat_badge': f"{total_teachers} Teachers" if total_teachers > 0 else "0 Teachers",
+            'action_label': 'Faculty Desk' if step4_done else 'Add Teachers',
+            'is_current': False,
+        },
+        {
+            'step_num': 5,
+            'code': 'sections',
+            'title': 'Sections & Allocations',
+            'name': '5. Class Sections & Allocations',
+            'desc': 'Set up grade sections, designate homerooms, and allocate teacher loads to section subjects.',
+            'url': '/sections/',
+            'icon': 'fa-solid fa-people-roof',
+            'is_completed': step5_done,
+            'stat_badge': f"{total_sections} Sections" if total_sections > 0 else "0 Sections",
+            'action_label': 'Manage Sections' if step5_done else 'Organize Sections',
+            'is_current': False,
+        },
+        {
+            'step_num': 6,
+            'code': 'timetable',
+            'title': 'AI Timetable Evolution',
+            'name': '6. AI Timetable Evolution',
+            'desc': 'Run the Genetic Algorithm to evolve collision-free schedules, review room utilization, and export SF7 matrices.',
+            'url': '/timetable/',
+            'icon': 'fa-solid fa-bolt',
+            'is_completed': step6_done,
+            'stat_badge': f"{total_scheduled} Bookings" if step6_done else "Ready to Run",
+            'action_label': 'Timetable Studio' if step6_done else 'Run AI Optimizer',
+            'is_current': False,
+            'is_ai_action': True,
+        }
+    ]
+
+    completed_count = sum(1 for s in steps if s['is_completed'])
+    readiness_percentage = int(round((completed_count / len(steps)) * 100))
+
+    next_step = None
+    for s in steps:
+        if not s['is_completed']:
+            s['is_current'] = True
+            next_step = s
+            break
+    if not next_step:
+        steps[-1]['is_current'] = True
+        next_step = steps[-1]
+
+    return {
+        'steps': steps,
+        'completed_count': completed_count,
+        'total_count': len(steps),
+        'readiness_percentage': readiness_percentage,
+        'next_step': next_step,
+        'is_fully_ready': completed_count == len(steps),
+    }
+
 def dashboard_view(request):
     academic_year = AcademicYear.objects.filter(is_active=True).first()
     schedule = Schedule.objects.order_by('-updated_at').first()
@@ -42,6 +170,8 @@ def dashboard_view(request):
     # Recent items
     total_scheduled_items = ScheduleItem.objects.filter(schedule=schedule).count() if schedule else 0
 
+    readiness = get_system_readiness_status()
+
     context = {
         'academic_year': academic_year,
         'schedule': schedule,
@@ -56,6 +186,7 @@ def dashboard_view(request):
         'jhs_sections': jhs_sections,
         'shs_sections': shs_sections,
         'total_scheduled_items': total_scheduled_items,
+        'readiness': readiness,
     }
     return render(request, 'dashboard.html', context)
 
