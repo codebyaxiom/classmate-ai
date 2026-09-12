@@ -1,4 +1,4 @@
-﻿from django.urls import path
+from django.urls import path
 from . import views
 
 urlpatterns = [
@@ -10,6 +10,10 @@ urlpatterns = [
     path('download-sample/<str:template_type>/', views.download_sample_csv, name='download_sample'),
     path('export-excel/', views.export_excel, name='export_excel'),
     path('print-sf7/<int:teacher_id>/', views.print_sf7_view, name='print_sf7'),
+    
+    path('teachers/', views.teachers_view, name='teachers'),
+    path('api/teachers/add/', views.add_teacher_api, name='api_add_teacher'),
+    path('api/teachers/delete/<int:teacher_id>/', views.delete_teacher_api, name='api_delete_teacher'),
     
     # API endpoints
     path('api/run-ga/', views.run_genetic_algorithm, name='api_run_ga'),

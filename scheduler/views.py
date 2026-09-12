@@ -10,7 +10,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 from .models import (
-    AcademicYear, Term, Department, Room, Subject, Teacher,
+    AcademicYear, Term, Department, Room, Subject, Teacher, TeacherQualification,
     Section, TimeSlot, SectionSubjectRequirement, Schedule, ScheduleItem, AuditLog
 )
 from .engine.genetic_scheduler import GeneticTimetableScheduler
@@ -434,3 +434,98 @@ def print_sf7_view(request, teacher_id=None):
         'prep_hours': prep_hours,
     }
     return render(request, 'print_sf7.html', context)
+
+
+def teachers_view(request):
+    dept_filter = request.GET.get('dept')
+    search_query = request.GET.get('q', '').strip()
+
+    teachers = Teacher.objects.select_related('department').prefetch_related('qualifications__subject').all().order_by('last_name')
+    if dept_filter:
+        teachers = teachers.filter(department__code=dept_filter)
+    if search_query:
+        teachers = teachers.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(employee_id__icontains=search_query)
+        )
+
+    departments = Department.objects.all().order_by('name')
+    subjects = Subject.objects.all().order_by('grade_level', 'code')
+
+    context = {
+        'teachers': teachers,
+        'departments': departments,
+        'subjects': subjects,
+        'dept_filter': dept_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'teachers.html', context)
+
+@csrf_exempt
+def add_teacher_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    emp_id = request.POST.get('employee_id', '').strip()
+    first_name = request.POST.get('first_name', '').strip()
+    last_name = request.POST.get('last_name', '').strip()
+    email = request.POST.get('email', '').strip()
+    dept_id = request.POST.get('department_id')
+    max_daily = int(request.POST.get('max_daily_hours', 6))
+    max_weekly = int(request.POST.get('max_weekly_hours', 30))
+    pref_vacant = request.POST.get('preferred_vacant_period')
+    subject_ids = request.POST.getlist('subject_ids')
+
+    if not emp_id or not first_name or not last_name or not dept_id:
+        return JsonResponse({'success': False, 'message': 'Please fill in all required fields.'})
+
+    if Teacher.objects.filter(employee_id=emp_id).exists():
+        return JsonResponse({'success': False, 'message': f'Employee ID {emp_id} is already registered.'})
+
+    dept = get_object_or_404(Department, id=dept_id)
+    pref_v_int = int(pref_vacant) if pref_vacant and pref_vacant.isdigit() else None
+
+    teacher = Teacher.objects.create(
+        employee_id=emp_id,
+        first_name=first_name,
+        last_name=last_name,
+        email=email or f"{first_name.lower()}.{last_name.lower()}@deped.gov.ph",
+        department=dept,
+        max_daily_hours=max_daily,
+        max_weekly_hours=max_weekly,
+        preferred_vacant_period=pref_v_int,
+        is_active=True
+    )
+
+    for s_id in subject_ids:
+        subj = Subject.objects.filter(id=s_id).first()
+        if subj:
+            TeacherQualification.objects.get_or_create(teacher=teacher, subject=subj)
+
+    AuditLog.objects.create(
+        action="Teacher Registered",
+        details=f"Added faculty member {teacher.full_name} ({teacher.employee_id}) with {len(subject_ids)} qualified subjects."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Teacher {teacher.full_name} added successfully!',
+        'teacher_id': teacher.id
+    })
+
+@csrf_exempt
+def delete_teacher_api(request, teacher_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    name = teacher.full_name
+    teacher.delete()
+
+    AuditLog.objects.create(
+        action="Teacher Removed",
+        details=f"Removed faculty member {name}."
+    )
+
+    return JsonResponse({'success': True, 'message': f'Faculty member {name} removed.'})

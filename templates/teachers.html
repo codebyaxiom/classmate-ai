@@ -1,0 +1,309 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Faculty Management | CLASSMATE-AI{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-chalkboard-user text-deped-blue"></i>
+                <span>Faculty & Teacher Management</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Onboard teachers, configure subject qualifications, and manage Magna Carta (RA 4670 / DO 005 s. 2024) workload limits.
+            </p>
+        </div>
+
+        <div class="flex items-center space-x-2 self-start sm:self-auto">
+            <button onclick="openAddTeacherModal()" class="px-4 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-md shadow-blue-500/20 transition active:scale-95 flex items-center space-x-2">
+                <i class="fa-solid fa-user-plus text-deped-gold"></i>
+                <span>+ Add New Teacher</span>
+            </button>
+            <a href="{% url 'import_export' %}" class="px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-file-csv text-slate-400"></i>
+                <span>CSV Upload</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+        <form method="GET" action="{% url 'teachers' %}" class="flex-1 w-full flex flex-col sm:flex-row items-center gap-3">
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name or ID..." class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="w-full sm:w-56">
+                <select name="dept" onchange="this.form.submit()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none focus:ring-2 focus:ring-deped-blue">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.code }}" {% if dept_filter == d.code %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                Filter
+            </button>
+            {% if search_query or dept_filter %}
+            <a href="{% url 'teachers' %}" class="text-xs text-red-600 hover:underline font-semibold">Reset</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Teachers Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-900 text-white uppercase text-[11px] font-heading tracking-wider">
+                    <tr>
+                        <th class="py-3.5 px-4">Faculty Details</th>
+                        <th class="py-3.5 px-3">Department</th>
+                        <th class="py-3.5 px-3 text-center">Max Daily Load</th>
+                        <th class="py-3.5 px-3 text-center">Preferred Vacant</th>
+                        <th class="py-3.5 px-4">Qualified Subjects</th>
+                        <th class="py-3.5 px-4 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for t in teachers %}
+                    <tr class="hover:bg-slate-50/80 transition" id="teacher-row-{{ t.id }}">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-deped-blue text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                                    {{ t.first_name|slice:":1" }}{{ t.last_name|slice:":1" }}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-900 text-sm block">{{ t.full_name }}</span>
+                                    <span class="text-[11px] text-slate-400 font-mono">{{ t.employee_id }} &bull; {{ t.email }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-100 font-bold text-slate-700 text-[11px]">
+                                {{ t.department.code }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-center font-bold text-slate-700">
+                            {{ t.max_daily_hours }} hrs / day
+                            <span class="block text-[10px] text-emerald-600 font-semibold">DO 005 s. 2024</span>
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if t.preferred_vacant_period %}
+                            <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[11px]">
+                                Period {{ t.preferred_vacant_period }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400 text-[11px]">Any slot</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="flex flex-wrap gap-1">
+                                {% for q in t.qualifications.all %}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                    {{ q.subject.code }}
+                                </span>
+                                {% empty %}
+                                <span class="text-amber-600 text-[10px] font-semibold">No qualifications tagged</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center space-x-1.5">
+                                <a href="{% url 'print_sf7' t.id %}" target="_blank" class="p-1.5 text-blue-600 hover:text-deped-darkblue hover:bg-blue-50 rounded-lg transition" title="Print SF7">
+                                    <i class="fa-solid fa-print"></i>
+                                </a>
+                                <button onclick="deleteTeacher({{ t.id }}, '{{ t.full_name }}')" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" title="Remove Faculty">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-400 font-semibold">
+                            No faculty members found. Click <strong>"+ Add New Teacher"</strong> above to register a teacher.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Add Teacher Modal -->
+<div id="addTeacherModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-gradient-to-r from-deped-darkblue to-deped-blue p-4 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-user-plus text-deped-gold text-lg"></i>
+                <div>
+                    <h3 class="font-heading font-bold text-base">Add Faculty Member</h3>
+                    <p class="text-[11px] text-blue-200">Register teacher & assign subject qualifications</p>
+                </div>
+            </div>
+            <button onclick="closeAddTeacherModal()" class="text-white/70 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="addTeacherForm" onsubmit="submitAddTeacher(event)" class="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">First Name *</label>
+                    <input type="text" id="tFirstName" required placeholder="e.g. Maria" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Last Name *</label>
+                    <input type="text" id="tLastName" required placeholder="e.g. Santos" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Employee ID *</label>
+                    <input type="text" id="tEmployeeId" required placeholder="e.g. T-2026-025" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Department *</label>
+                    <select id="tDepartment" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.name }} ({{ d.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Official Email (Optional)</label>
+                <input type="email" id="tEmail" placeholder="leave blank to auto-generate @deped.gov.ph" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Max Daily Teaching Hours</label>
+                    <input type="number" id="tMaxDaily" value="6" min="1" max="8" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    <span class="text-[10px] text-slate-400">DepEd Magna Carta standard is 6h</span>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Preferred Vacant Period</label>
+                    <select id="tPrefVacant" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="">No Preference</option>
+                        <option value="1">Period 1 (Morning Start)</option>
+                        <option value="2">Period 2</option>
+                        <option value="4">Period 3</option>
+                        <option value="5">Period 4</option>
+                        <option value="7">Period 5 (After Lunch)</option>
+                        <option value="8">Period 6</option>
+                        <option value="9">Period 7 (End of Day)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Subject Qualifications Checkbox Picker -->
+            <div class="pt-2 border-t border-slate-100 space-y-1.5">
+                <label class="block font-bold text-slate-700 uppercase text-[11px]">
+                    Qualified Subjects (Select all that apply)
+                </label>
+                <p class="text-[11px] text-slate-400">The Genetic Algorithm will ONLY assign this teacher to checked subjects.</p>
+
+                <div class="max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-2.5 space-y-1 bg-slate-50">
+                    {% for s in subjects %}
+                    <label class="flex items-center space-x-2 text-[11px] hover:bg-white p-1 rounded cursor-pointer transition">
+                        <input type="checkbox" name="subject_ids" value="{{ s.id }}" class="rounded text-deped-blue focus:ring-deped-blue">
+                        <span class="font-bold text-slate-800">{{ s.code }}</span>
+                        <span class="text-slate-600 truncate">&bull; {{ s.title }} (G{{ s.grade_level }})</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
+                <button type="button" onclick="closeAddTeacherModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold shadow transition">Save Faculty</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openAddTeacherModal() {
+        const modal = document.getElementById('addTeacherModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeAddTeacherModal() {
+        const modal = document.getElementById('addTeacherModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function submitAddTeacher(e) {
+        e.preventDefault();
+        const firstName = document.getElementById('tFirstName').value;
+        const lastName = document.getElementById('tLastName').value;
+        const employeeId = document.getElementById('tEmployeeId').value;
+        const departmentId = document.getElementById('tDepartment').value;
+        const email = document.getElementById('tEmail').value;
+        const maxDaily = document.getElementById('tMaxDaily').value;
+        const prefVacant = document.getElementById('tPrefVacant').value;
+
+        const checkboxes = document.querySelectorAll('input[name="subject_ids"]:checked');
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('employee_id', employeeId);
+        formData.append('department_id', departmentId);
+        formData.append('email', email);
+        formData.append('max_daily_hours', maxDaily);
+        formData.append('preferred_vacant_period', prefVacant);
+        checkboxes.forEach(cb => formData.append('subject_ids', cb.value));
+
+        try {
+            const res = await fetch("{% url 'api_add_teacher' %}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                closeAddTeacherModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Error adding teacher', true);
+            }
+        } catch (err) {
+            showToast('Network error while adding teacher', true);
+        }
+    }
+
+    async function deleteTeacher(teacherId, teacherName) {
+        if (!confirm(`Are you sure you want to remove ${teacherName}?`)) return;
+
+        try {
+            const res = await fetch(`/api/teachers/delete/${teacherId}/`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                const row = document.getElementById(`teacher-row-${teacherId}`);
+                if (row) row.remove();
+            } else {
+                showToast(data.message || 'Failed to remove teacher', true);
+            }
+        } catch (err) {
+            showToast('Network error', true);
+        }
+    }
+</script>
+{% endblock %}

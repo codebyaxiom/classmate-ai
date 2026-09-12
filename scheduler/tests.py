@@ -1,4 +1,4 @@
-﻿from django.test import TestCase, Client
+from django.test import TestCase, Client
 from django.urls import reverse
 from scheduler.models import (
     AcademicYear, Term, Department, Room, Subject, Teacher, 
@@ -80,3 +80,23 @@ class ClassmateAITestSuite(TestCase):
         data = res.json()
         self.assertFalse(data['success'])
         self.assertIn('break', data['message'].lower())
+
+    def test_teachers_view_loads(self):
+        res = self.client.get(reverse('teachers'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Faculty & Teacher Management")
+
+    def test_add_teacher_api(self):
+        res = self.client.post(reverse('api_add_teacher'), {
+            'first_name': 'Gabriela',
+            'last_name': 'Silang',
+            'employee_id': 'T-TEST-999',
+            'department_id': self.dept.id,
+            'max_daily_hours': 6,
+            'subject_ids': [self.subject.id],
+        })
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(Teacher.objects.filter(employee_id='T-TEST-999').exists())
+        t = Teacher.objects.get(employee_id='T-TEST-999')
+        self.assertTrue(t.qualifications.filter(subject=self.subject).exists())

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -73,6 +73,9 @@
                     </a>
                     <a href="{% url 'timetable' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'timetable' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
                         <i class="fa-solid fa-calendar-days mr-1.5"></i>Timetable Studio
+                    </a>
+                    <a href="{% url 'teachers' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'teachers' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-users-gear mr-1.5"></i>Faculty Desk
                     </a>
                     <a href="{% url 'teacher_loads' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'teacher_loads' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
                         <i class="fa-solid fa-chalkboard-user mr-1.5"></i>Teacher Loads (SF7)
