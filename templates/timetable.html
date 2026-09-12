@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Timetable Studio | CLASSMATE-AI{% endblock %}
 
@@ -93,62 +93,54 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 text-xs">
-                    {% for ts in timeslots %}
-                    <tr class="{% if ts.is_break %}bg-amber-50/70{% else %}hover:bg-slate-50/50{% endif %} transition">
+                    {% for row in timetable_rows %}
+                    <tr class="{% if row.is_break %}bg-amber-50/70{% else %}hover:bg-slate-50/50{% endif %} transition">
                         <!-- Period Column -->
                         <td class="py-3 px-3 text-center border-r border-slate-200 font-semibold text-slate-600 bg-slate-50/80">
-                            <span class="block text-xs font-bold text-slate-800">P{{ ts.period_number }}</span>
-                            <span class="text-[10px] text-slate-500 block leading-tight">{{ ts.start_time|time:"g:i A" }} - {{ ts.end_time|time:"g:i A" }}</span>
+                            <span class="block text-xs font-bold text-slate-800">P{{ row.timeslot.period_number }}</span>
+                            <span class="text-[10px] text-slate-500 block leading-tight">{{ row.timeslot.start_time|time:"g:i A" }} - {{ row.timeslot.end_time|time:"g:i A" }}</span>
                         </td>
 
-                        {% if ts.is_break %}
+                        {% if row.is_break %}
                             <td colspan="5" class="py-2.5 px-4 text-center font-bold text-amber-800 bg-amber-100/40 border-r border-slate-200">
                                 <i class="fa-solid fa-mug-hot text-amber-600 mr-1.5"></i>
-                                {{ ts.label }}
+                                {{ row.timeslot.label }}
                             </td>
                         {% else %}
-                            {% for day_num, day_name in days %}
-                            <td class="day-cell py-2 px-2 border-r border-slate-200 align-top last:border-r-0" data-day="{{ day_num }}">
-                                {% with key_val=day_num|stringformat:"i" %}
-                                {% with full_key=day_num|stringformat:"i"|add:","|add:ts.period_number|stringformat:"i" %}
-                                
-                                {% for (item_day, item_period), item in grid.items %}
-                                    {% if item_day == day_num and item_period == ts.period_number %}
-                                    <div class="p-2.5 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white shadow-sm space-y-1.5 relative group hover:border-deped-blue transition">
-                                        <div class="flex items-start justify-between">
-                                            <span class="font-extrabold text-[11px] text-deped-darkblue line-clamp-1 leading-snug">
-                                                {{ item.subject.title }}
-                                            </span>
-                                            <button onclick="toggleLock({{ item.id }})" class="p-0.5 text-slate-400 hover:text-amber-600 transition" title="{% if item.is_locked %}Locked{% else %}Click to lock slot{% endif %}">
-                                                <i class="fa-solid {% if item.is_locked %}fa-lock text-amber-600{% else %}fa-lock-open opacity-40 group-hover:opacity-100{% endif %} text-[10px]"></i>
-                                            </button>
-                                        </div>
+                            {% for cell in row.days %}
+                            <td class="day-cell py-2 px-2 border-r border-slate-200 align-top last:border-r-0" data-day="{{ cell.day_num }}">
+                                {% if cell.item %}
+                                <div class="p-2.5 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white shadow-sm space-y-1.5 relative group hover:border-deped-blue transition">
+                                    <div class="flex items-start justify-between">
+                                        <span class="font-extrabold text-[11px] text-deped-darkblue line-clamp-1 leading-snug">
+                                            {{ cell.item.subject.title }}
+                                        </span>
+                                        <button onclick="toggleLock({{ cell.item.id }})" class="p-0.5 text-slate-400 hover:text-amber-600 transition" title="{% if cell.item.is_locked %}Locked{% else %}Click to lock slot{% endif %}">
+                                            <i class="fa-solid {% if cell.item.is_locked %}fa-lock text-amber-600{% else %}fa-lock-open opacity-40 group-hover:opacity-100{% endif %} text-[10px]"></i>
+                                        </button>
+                                    </div>
 
-                                        <div class="space-y-0.5 text-[10px] text-slate-600">
-                                            <div class="flex items-center space-x-1">
-                                                <i class="fa-solid fa-chalkboard-user text-slate-400 text-[9px]"></i>
-                                                <span class="truncate font-semibold">{{ item.teacher.full_name }}</span>
-                                            </div>
-                                            <div class="flex items-center space-x-1">
-                                                <i class="fa-solid fa-people-group text-slate-400 text-[9px]"></i>
-                                                <span class="truncate">{{ item.section.name }}</span>
-                                            </div>
+                                    <div class="space-y-0.5 text-[10px] text-slate-600">
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fa-solid fa-chalkboard-user text-slate-400 text-[9px]"></i>
+                                            <span class="truncate font-semibold">{{ cell.item.teacher.full_name }}</span>
                                         </div>
-
-                                        <div class="flex items-center justify-between pt-1 border-t border-blue-50 text-[9px]">
-                                            <span class="px-1.5 py-0.5 rounded font-bold {% if item.room.room_type == 'science_lab' or item.room.room_type == 'computer_lab' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600{% endif %}">
-                                                {{ item.room.name }}
-                                            </span>
-                                            <button onclick="openSwapModal({{ item.id }}, '{{ item.subject.code }}', {{ item.time_slot.day_of_week }}, {{ item.time_slot.period_number }}, {{ item.room.id }}, {{ item.teacher.id }})" class="text-blue-600 hover:text-deped-blue font-bold opacity-80 group-hover:opacity-100">
-                                                Swap <i class="fa-solid fa-arrow-right-arrow-left text-[8px]"></i>
-                                            </button>
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fa-solid fa-people-group text-slate-400 text-[9px]"></i>
+                                            <span class="truncate">{{ cell.item.section.name }}</span>
                                         </div>
                                     </div>
-                                    {% endif %}
-                                {% endfor %}
 
-                                {% endwith %}
-                                {% endwith %}
+                                    <div class="flex items-center justify-between pt-1 border-t border-blue-50 text-[9px]">
+                                        <span class="px-1.5 py-0.5 rounded font-bold {% if cell.item.room.room_type == 'science_lab' or cell.item.room.room_type == 'computer_lab' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                            {{ cell.item.room.name }}
+                                        </span>
+                                        <button onclick="openSwapModal({{ cell.item.id }}, '{{ cell.item.subject.code }}', {{ cell.item.time_slot.day_of_week }}, {{ cell.item.time_slot.period_number }}, {{ cell.item.room.id }}, {{ cell.item.teacher.id }})" class="text-blue-600 hover:text-deped-blue font-bold opacity-80 group-hover:opacity-100">
+                                            Swap <i class="fa-solid fa-arrow-right-arrow-left text-[8px]"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </td>
                             {% endfor %}
                         {% endif %}

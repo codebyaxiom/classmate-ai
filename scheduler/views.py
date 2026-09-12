@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import io
 from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
@@ -109,8 +109,23 @@ def timetable_view(request):
         ts = item.time_slot
         grid[(ts.day_of_week, ts.period_number)] = item
 
-    # Get timeslot labels
+    # Build structured timetable_rows for seamless template rendering
     timeslots = TimeSlot.objects.filter(day_of_week=1).order_by('period_number')
+    timetable_rows = []
+    for ts in timeslots:
+        row = {
+            'timeslot': ts,
+            'is_break': ts.is_break,
+            'days': []
+        }
+        for day_num, day_name in days:
+            item = grid.get((day_num, ts.period_number))
+            row['days'].append({
+                'day_num': day_num,
+                'day_name': day_name,
+                'item': item,
+            })
+        timetable_rows.append(row)
 
     context = {
         'schedule': schedule,
@@ -124,6 +139,7 @@ def timetable_view(request):
         'periods': periods,
         'grid': grid,
         'timeslots': timeslots,
+        'timetable_rows': timetable_rows,
         'current_entity_name': current_entity_name,
     }
     return render(request, 'timetable.html', context)
