@@ -18,31 +18,11 @@
             <p class="text-blue-100 text-sm sm:text-base leading-relaxed">
                 Seamless hybrid scheduling across Junior High School (Grades 7–10) and the new Strengthened Senior High School 3-Term Trimester Model.
             </p>
-            <div class="flex flex-wrap gap-2.5 pt-2">
-                <button onclick="openGaModal()" class="px-5 py-2.5 rounded-xl bg-deped-gold text-slate-900 font-extrabold text-sm hover:bg-yellow-400 shadow-md transition active:scale-95 flex items-center space-x-2">
-                    <i class="fa-solid fa-bolt"></i>
-                    <span>Run Genetic Algorithm</span>
-                </button>
-                <a href="{% url 'teachers' %}" class="px-5 py-2.5 rounded-xl bg-white text-deped-darkblue font-extrabold text-sm shadow-md transition active:scale-95 flex items-center space-x-2 hover:bg-slate-100">
-                    <i class="fa-solid fa-user-plus text-deped-blue"></i>
-                    <span>Faculty Desk (+ Add)</span>
-                </a>
-                <a href="{% url 'sections' %}" class="px-5 py-2.5 rounded-xl bg-deped-gold text-slate-900 font-extrabold text-sm shadow-md transition active:scale-95 flex items-center space-x-2 hover:bg-yellow-400">
-                    <i class="fa-solid fa-people-roof text-deped-darkblue"></i>
-                    <span>Sections Desk (+ Add)</span>
-                </a>
-                <a href="{% url 'subjects' %}" class="px-5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-sm backdrop-blur transition flex items-center space-x-2 border border-white/25 active:scale-95">
-                    <i class="fa-solid fa-book-open-reader text-deped-gold"></i>
-                    <span>Subjects Hub (+ Add)</span>
-                </a>
-                <a href="{% url 'timetable' %}" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm backdrop-blur transition flex items-center space-x-2 border border-white/20">
-                    <i class="fa-solid fa-calendar-week"></i>
-                    <span>Open Timetable Studio</span>
-                </a>
-                <a href="{% url 'export_excel' %}" class="px-4 py-2.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white font-bold text-sm shadow transition flex items-center space-x-2">
-                    <i class="fa-solid fa-file-excel"></i>
-                    <span>Export Excel</span>
-                </a>
+            <div class="flex items-center space-x-3 pt-2">
+                <span class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-white/10 border border-white/20 backdrop-blur text-xs text-blue-100 font-semibold">
+                    <i class="fa-solid fa-route text-deped-gold"></i>
+                    <span>Follow the <strong>Guided Readiness Sequence</strong> below to initialize school data and generate collision-free schedules</span>
+                </span>
             </div>
         </div>
         <!-- Decorative subtle watermark -->
@@ -257,31 +237,19 @@
                 </div>
             </div>
 
-            <!-- Quick Access Navigation Buttons -->
-            <div class="pt-2 grid grid-cols-2 sm:grid-cols-6 gap-2">
-                <a href="{% url 'teachers' %}" class="py-3 px-2 rounded-xl bg-blue-50 hover:bg-deped-blue hover:text-white text-deped-darkblue text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-blue-100 group shadow-sm">
-                    <i class="fa-solid fa-chalkboard-user text-base text-deped-blue group-hover:text-deped-gold transition"></i>
-                    <span>Faculty</span>
+            <!-- Master Timetable Direct Actions -->
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+                <a href="{% url 'timetable' %}" class="px-4 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white text-xs font-bold transition shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-table-cells text-deped-gold"></i>
+                    <span>Open Timetable Studio &rarr;</span>
                 </a>
-                <a href="{% url 'sections' %}" class="py-3 px-2 rounded-xl bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-900 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-amber-100 group shadow-sm">
-                    <i class="fa-solid fa-people-roof text-base text-amber-600 group-hover:text-white transition"></i>
-                    <span>Sections</span>
+                <a href="{% url 'export_excel' %}" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center space-x-2">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                    <span>Export Master Excel</span>
                 </a>
-                <a href="{% url 'subjects' %}" class="py-3 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-emerald-100 group shadow-sm">
-                    <i class="fa-solid fa-book-open-reader text-base text-emerald-600 group-hover:text-white transition"></i>
-                    <span>Subjects</span>
-                </a>
-                <a href="{% url 'timetable' %}" class="py-3 px-2 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
-                    <i class="fa-solid fa-table-cells text-base text-slate-400 group-hover:text-deped-gold transition"></i>
-                    <span>Timetable</span>
-                </a>
-                <a href="{% url 'teacher_loads' %}" class="py-3 px-2 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
-                    <i class="fa-solid fa-id-card-clip text-base text-slate-400 group-hover:text-deped-gold transition"></i>
-                    <span>SF7 Loads</span>
-                </a>
-                <a href="{% url 'room_utilization' %}" class="py-3 px-2 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
-                    <i class="fa-solid fa-door-open text-base text-slate-400 group-hover:text-deped-gold transition"></i>
-                    <span>Rooms</span>
+                <a href="{% url 'room_utilization' %}" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center space-x-2">
+                    <i class="fa-solid fa-door-open text-purple-600"></i>
+                    <span>Room Utilization</span>
                 </a>
             </div>
         </div>
