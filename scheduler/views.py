@@ -14,7 +14,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .models import (
     AcademicYear, Term, Department, Room, Subject, Teacher, TeacherQualification,
     Section, TimeSlot, SectionSubjectRequirement, Schedule, ScheduleItem, AuditLog,
-    AncillaryDuty, SchoolProfile, CurriculumCluster
+    AncillaryDuty, SchoolProfile, CurriculumCluster, FacilityType, AncillaryDesignationCatalog
 )
 from .engine.genetic_scheduler import GeneticTimetableScheduler
 
@@ -112,8 +112,37 @@ def timetable_view(request):
         ts = item.time_slot
         grid[(ts.day_of_week, ts.period_number)] = item
 
-    # Build structured timetable_rows for seamless template rendering
-    timeslots = TimeSlot.objects.filter(day_of_week=1).order_by('period_number')
+    # Determine the target grade level for the timetable rows/axis
+    view_grade = request.GET.get('view_grade')
+    if view_grade:
+        try:
+            active_grade = int(view_grade)
+        except ValueError:
+            active_grade = 0
+    elif filter_type == 'section' and filter_id:
+        sec = Section.objects.filter(id=filter_id).first()
+        active_grade = sec.grade_level if sec else 0
+    elif filter_type == 'teacher' and filter_id:
+        t = Teacher.objects.filter(id=filter_id).first()
+        if t:
+            advised = t.advised_sections.first()
+            handled = SectionSubjectRequirement.objects.filter(assigned_teacher=t).first()
+            sec = advised or (handled.section if handled else None)
+            if sec:
+                active_grade = sec.grade_level
+            elif t.curriculum_level == 'shs':
+                active_grade = 11
+            elif t.curriculum_level == 'jhs':
+                active_grade = 7
+            else:
+                active_grade = 0
+        else:
+            active_grade = 0
+    else:
+        active_grade = 0
+
+    # Build structured timetable_rows for active grade level
+    timeslots = TimeSlot.get_periods_for_grade(active_grade, day=1)
     timetable_rows = []
     for ts in timeslots:
         row = {
@@ -130,6 +159,9 @@ def timetable_view(request):
             })
         timetable_rows.append(row)
 
+    grade_dict = dict(TimeSlot.TIMEFRAME_GRADE_CHOICES)
+    active_grade_label = grade_dict.get(active_grade, f"Grade {active_grade}")
+
     context = {
         'schedule': schedule,
         'schedules': schedules,
@@ -144,6 +176,9 @@ def timetable_view(request):
         'timeslots': timeslots,
         'timetable_rows': timetable_rows,
         'current_entity_name': current_entity_name,
+        'active_grade': active_grade,
+        'active_grade_label': active_grade_label,
+        'grade_choices': TimeSlot.TIMEFRAME_GRADE_CHOICES,
     }
     return render(request, 'timetable.html', context)
 
@@ -485,14 +520,20 @@ def teachers_view(request):
 
     departments = Department.objects.all().order_by('name')
     subjects = Subject.objects.all().order_by('grade_level', 'code')
-    timeframes = TimeSlot.objects.filter(day_of_week=1, is_break=False).order_by('period_number')
-    common_designations = AncillaryDuty.COMMON_DESIGNATIONS
+    timeframes = TimeSlot.objects.filter(day_of_week=1, is_break=False).order_by('grade_level', 'period_number')
+    grouped_timeframes = defaultdict(list)
+    for ts in timeframes:
+        grade_lbl = dict(TimeSlot.TIMEFRAME_GRADE_CHOICES).get(ts.grade_level, f"Grade {ts.grade_level}")
+        grouped_timeframes[grade_lbl].append(ts)
+
+    common_designations = AncillaryDesignationCatalog.get_all_choices()
 
     context = {
         'teachers': teachers,
         'departments': departments,
         'subjects': subjects,
         'timeframes': timeframes,
+        'grouped_timeframes': dict(grouped_timeframes),
         'common_designations': common_designations,
         'level_filter': level_filter,
         'dept_filter': dept_filter,
@@ -1135,6 +1176,18 @@ def apply_preset_timeframes_api(request):
             (10, "Period 6", "15:00", "16:00", False),
         ]
         label_preset = "Strengthened SHS Trimester Bell Schedule"
+    elif preset_type == 'shs_immersion':
+        schedule_def = [
+            (1, "Flag Ceremony", "07:00", "07:30", True),
+            (2, "Period 1 (Practicum Block)", "07:30", "09:00", False),
+            (3, "Period 2 (Specialized Block)", "09:00", "10:30", False),
+            (4, "Morning Recess", "10:30", "10:45", True),
+            (5, "Period 3 (Applied Block)", "10:45", "12:15", False),
+            (6, "Noon Break", "12:15", "13:15", True),
+            (7, "Period 4 (Work Immersion / Research)", "13:15", "14:45", False),
+            (8, "Period 5 (Culminating Activity)", "14:45", "16:15", False),
+        ]
+        label_preset = "Senior High Immersion & Block Schedule (90m Periods)"
     else:
         schedule_def = [
             (1, "Flag Ceremony", "07:15", "07:45", True),
@@ -1175,18 +1228,359 @@ def apply_preset_timeframes_api(request):
     })
 
 
+@csrf_exempt
+def copy_grade_timeframes_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    try:
+        source_grade = int(request.POST.get('source_grade'))
+        target_grade = int(request.POST.get('target_grade'))
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'message': 'Valid source and target grade required.'}, status=400)
+
+    if source_grade == target_grade:
+        return JsonResponse({'success': False, 'message': 'Source and target grade must be different.'})
+
+    source_slots = TimeSlot.objects.filter(grade_level=source_grade)
+    if not source_slots.exists():
+        return JsonResponse({'success': False, 'message': f'No timeframes found for Grade {source_grade} to copy from.'})
+
+    TimeSlot.objects.filter(grade_level=target_grade).delete()
+
+    created_count = 0
+    for s in source_slots:
+        TimeSlot.objects.create(
+            day_of_week=s.day_of_week,
+            period_number=s.period_number,
+            start_time=s.start_time,
+            end_time=s.end_time,
+            label=s.label,
+            is_break=s.is_break,
+            grade_level=target_grade
+        )
+        created_count += 1
+
+    grade_dict = dict(TimeSlot.TIMEFRAME_GRADE_CHOICES)
+    src_name = grade_dict.get(source_grade, f"Grade {source_grade}")
+    tgt_name = grade_dict.get(target_grade, f"Grade {target_grade}")
+
+    AuditLog.objects.create(
+        action="Timeframes Cloned",
+        details=f"Copied schedule from {src_name} to {tgt_name} ({created_count} slots created)."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Successfully copied schedule from {src_name} to {tgt_name} ({created_count} slots)!'
+    })
+
+
+@csrf_exempt
+def clear_grade_timeframes_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    try:
+        grade_level = int(request.POST.get('grade_level'))
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'message': 'Valid grade level required.'}, status=400)
+
+    deleted_count, _ = TimeSlot.objects.filter(grade_level=grade_level).delete()
+
+    AuditLog.objects.create(
+        action="Timeframes Cleared",
+        details=f"Cleared all schedule periods for Grade {grade_level} ({deleted_count} slots deleted)."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Cleared all periods for Grade {grade_level}!'
+    })
+
+
 def settings_view(request):
     profile = SchoolProfile.get_settings()
     rooms = Room.objects.all().order_by('building', 'name')
     clusters = CurriculumCluster.objects.all().order_by('curriculum_level', 'name')
+    facility_types = FacilityType.objects.all().order_by('name')
+    ancillary_catalog = AncillaryDesignationCatalog.objects.all().order_by('name')
+    academic_years = AcademicYear.objects.all().order_by('-name')
+    terms = Term.objects.all().order_by('academic_year', 'name')
+    departments = Department.objects.all().order_by('name')
+
     context = {
         'profile': profile,
         'rooms': rooms,
-        'room_types': Room.ROOM_TYPES,
+        'room_types': FacilityType.get_all_choices(),
+        'facility_types': facility_types,
         'clusters': clusters,
         'cluster_levels': CurriculumCluster.LEVEL_CHOICES,
+        'ancillary_catalog': ancillary_catalog,
+        'academic_years': academic_years,
+        'terms': terms,
+        'term_types': Term.TERM_TYPES,
+        'departments': departments,
     }
     return render(request, 'settings.html', context)
+
+
+@csrf_exempt
+def update_workload_policy_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    profile = SchoolProfile.get_settings()
+    try:
+        profile.max_daily_teaching_hours = int(request.POST.get('max_daily_teaching_hours', 6))
+        profile.max_weekly_teaching_hours = int(request.POST.get('max_weekly_teaching_hours', 30))
+        profile.standard_workweek_hours = int(request.POST.get('standard_workweek_hours', 40))
+        profile.save()
+
+        AuditLog.objects.create(
+            action="Workload Policy Updated",
+            details=f"Updated load caps: Max Daily {profile.max_daily_teaching_hours}h, Max Weekly {profile.max_weekly_teaching_hours}h, Workweek {profile.standard_workweek_hours}h."
+        )
+
+        return JsonResponse({'success': True, 'message': 'Workload & teaching policy rules successfully updated!'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+
+@csrf_exempt
+def add_facility_type_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    code = request.POST.get('code', '').strip().lower().replace(' ', '_').replace('-', '_')
+    description = request.POST.get('description', '').strip()
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Facility type name is required.'})
+
+    if not code:
+        code = name.lower().replace(' ', '_').replace('-', '_')
+
+    if FacilityType.objects.filter(code=code).exists():
+        return JsonResponse({'success': False, 'message': f'Facility type with code "{code}" already exists.'})
+
+    ft = FacilityType.objects.create(code=code, name=name, description=description, is_active=True)
+
+    AuditLog.objects.create(
+        action="Facility Type Established",
+        details=f"Added learning facility category '{ft.name}' ({ft.code})."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Facility category "{ft.name}" created successfully!',
+        'id': ft.id,
+        'code': ft.code,
+        'name': ft.name,
+    })
+
+
+@csrf_exempt
+def delete_facility_type_api(request, ft_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    ft = get_object_or_404(FacilityType, id=ft_id)
+    name = ft.name
+    ft.delete()
+
+    AuditLog.objects.create(
+        action="Facility Type Removed",
+        details=f"Removed facility category '{name}'."
+    )
+
+    return JsonResponse({'success': True, 'message': f'Facility category "{name}" removed successfully!'})
+
+
+@csrf_exempt
+def add_academic_year_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    set_active = request.POST.get('set_active') == 'true'
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Academic year name is required (e.g. 2025-2026).'})
+
+    if AcademicYear.objects.filter(name=name).exists():
+        return JsonResponse({'success': False, 'message': f'Academic year "{name}" already exists.'})
+
+    if set_active:
+        AcademicYear.objects.update(is_active=False)
+
+    ay = AcademicYear.objects.create(name=name, is_active=set_active)
+
+    if set_active:
+        profile = SchoolProfile.get_settings()
+        profile.active_academic_year = ay
+        profile.save()
+
+    AuditLog.objects.create(
+        action="Academic Year Added",
+        details=f"Created school year '{ay.name}' (Active: {ay.is_active})."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'School Year "{ay.name}" established successfully!',
+        'id': ay.id,
+        'name': ay.name,
+        'is_active': ay.is_active
+    })
+
+
+@csrf_exempt
+def toggle_academic_year_api(request, ay_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    ay = get_object_or_404(AcademicYear, id=ay_id)
+    AcademicYear.objects.update(is_active=False)
+    ay.is_active = True
+    ay.save()
+
+    profile = SchoolProfile.get_settings()
+    profile.active_academic_year = ay
+    profile.save()
+
+    AuditLog.objects.create(
+        action="Active School Year Changed",
+        details=f"Set '{ay.name}' as the active academic year."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'School Year "{ay.name}" set as active across CLASSMATE-AI!'
+    })
+
+
+@csrf_exempt
+def add_term_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    term_type = request.POST.get('term_type', 'shs_term_1')
+    ay_id = request.POST.get('academic_year_id')
+    set_active = request.POST.get('set_active') == 'true'
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Term name is required (e.g. 1st Trimester).'})
+
+    ay = AcademicYear.objects.filter(id=ay_id).first() or AcademicYear.objects.filter(is_active=True).first()
+    if not ay:
+        return JsonResponse({'success': False, 'message': 'Active academic year is required.'})
+
+    if set_active:
+        Term.objects.filter(academic_year=ay).update(is_active=False)
+
+    term = Term.objects.create(academic_year=ay, name=name, term_type=term_type, is_active=set_active)
+
+    if set_active:
+        profile = SchoolProfile.get_settings()
+        profile.active_term = term
+        profile.save()
+
+    AuditLog.objects.create(
+        action="Academic Term Created",
+        details=f"Added term '{term.name}' for {ay.name}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Term "{term.name}" created successfully!',
+        'id': term.id,
+        'name': term.name,
+    })
+
+
+@csrf_exempt
+def toggle_term_api(request, term_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    term = get_object_or_404(Term, id=term_id)
+    Term.objects.filter(academic_year=term.academic_year).update(is_active=False)
+    term.is_active = True
+    term.save()
+
+    profile = SchoolProfile.get_settings()
+    profile.active_term = term
+    profile.save()
+
+    AuditLog.objects.create(
+        action="Active Term Changed",
+        details=f"Set '{term.name}' as the active term for {term.academic_year.name}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Term "{term.name}" is now the active term!'
+    })
+
+
+@csrf_exempt
+def add_ancillary_catalog_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    code = request.POST.get('code', '').strip().lower().replace(' ', '_').replace('-', '_')
+    try:
+        hours = float(request.POST.get('default_weekly_hours', 2.0))
+    except (ValueError, TypeError):
+        hours = 2.0
+    description = request.POST.get('description', '').strip()
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Designation name is required.'})
+
+    if not code:
+        code = name.lower().replace(' ', '_').replace('-', '_')
+
+    if AncillaryDesignationCatalog.objects.filter(code=code).exists():
+        return JsonResponse({'success': False, 'message': f'Designation with code "{code}" already exists.'})
+
+    cat = AncillaryDesignationCatalog.objects.create(
+        code=code, name=name, default_weekly_hours=hours, description=description, is_active=True
+    )
+
+    AuditLog.objects.create(
+        action="Ancillary Designation Cataloged",
+        details=f"Added '{cat.name}' ({hours}h/wk) to school designation catalog."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Designation "{cat.name}" added to catalog!',
+        'id': cat.id,
+        'name': cat.name,
+        'hours': cat.default_weekly_hours,
+    })
+
+
+@csrf_exempt
+def delete_ancillary_catalog_api(request, cat_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    cat = get_object_or_404(AncillaryDesignationCatalog, id=cat_id)
+    name = cat.name
+    cat.delete()
+
+    AuditLog.objects.create(
+        action="Ancillary Designation Removed",
+        details=f"Removed '{name}' from designation catalog."
+    )
+
+    return JsonResponse({'success': True, 'message': f'Designation "{name}" removed from catalog!'})
 
 
 @csrf_exempt

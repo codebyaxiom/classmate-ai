@@ -235,7 +235,12 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Curriculum Cluster *</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-bold text-slate-700">Curriculum Cluster *</label>
+                        <button type="button" onclick="openQuickAddClusterModal()" class="text-[10px] text-deped-blue hover:underline font-bold">
+                            + Quick Add
+                        </button>
+                    </div>
                     <select id="secCluster" onchange="onGradeOrClusterChange()" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
                         {% for c_val, c_name in clusters %}
                         <option value="{{ c_val }}">{{ c_name }}</option>
@@ -243,7 +248,12 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Homeroom Classroom</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-bold text-slate-700">Homeroom Classroom</label>
+                        <button type="button" onclick="openQuickAddRoomModal()" class="text-[10px] text-deped-blue hover:underline font-bold">
+                            + Quick Add
+                        </button>
+                    </div>
                     <select id="secHomeroom" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
                         <option value="">-- Select Homeroom --</option>
                         {% for r in rooms %}
@@ -347,6 +357,84 @@
             <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
                 <button type="button" onclick="closeEditSectionModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
                 <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-deped-blue text-white font-bold shadow transition">Save Assignments</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Quick Add Modal: Curriculum Cluster -->
+<div id="quickAddClusterModal" class="hidden fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 p-5 space-y-3 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h4 class="font-bold text-sm text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-shapes text-deped-blue"></i>
+                <span>Quick Add Cluster</span>
+            </h4>
+            <button type="button" onclick="closeQuickAddClusterModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+        <form onsubmit="submitQuickAddCluster(event)" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Cluster Code *</label>
+                <input type="text" id="quickClusterCode" required placeholder="e.g. STEM, TVL-ICT, JHS-GEN" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold uppercase outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Cluster Name *</label>
+                <input type="text" id="quickClusterName" required placeholder="e.g. Science, Technology, Engineering & Math" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Description (Optional)</label>
+                <input type="text" id="quickClusterDesc" placeholder="e.g. Academic Track - STEM Strand" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeQuickAddClusterModal()" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">Cancel</button>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-deped-blue text-white font-bold shadow hover:bg-deped-darkblue">Save Cluster</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Quick Add Modal: Classroom -->
+<div id="quickAddRoomModal" class="hidden fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 p-5 space-y-3 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h4 class="font-bold text-sm text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-door-open text-deped-blue"></i>
+                <span>Quick Add Classroom</span>
+            </h4>
+            <button type="button" onclick="closeQuickAddRoomModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+        <form onsubmit="submitQuickAddRoom(event)" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Room Name / Number *</label>
+                <input type="text" id="quickRoomName" required placeholder="e.g. Room 101, Science Lab 2" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Capacity</label>
+                    <input type="number" id="quickRoomCap" value="45" min="10" max="100" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Building</label>
+                    <input type="text" id="quickRoomBldg" placeholder="e.g. Bldg A" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Facility Type</label>
+                <select id="quickRoomType" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    <option value="lecture">Standard Classroom / Lecture</option>
+                    <option value="science_lab">Science Laboratory</option>
+                    <option value="computer_lab">Computer Laboratory</option>
+                    <option value="tvl_workshop">TVL / Workshop</option>
+                    <option value="gym">Gymnasium / Court</option>
+                </select>
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeQuickAddRoomModal()" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">Cancel</button>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-deped-blue text-white font-bold shadow hover:bg-deped-darkblue">Save Classroom</button>
             </div>
         </form>
     </div>
@@ -621,6 +709,100 @@
             }
         } catch (err) {
             showToast('Network error', true);
+        }
+    }
+
+    // Quick Add Modals
+    function openQuickAddClusterModal() {
+        document.getElementById('quickAddClusterModal').classList.remove('hidden');
+    }
+    function closeQuickAddClusterModal() {
+        document.getElementById('quickAddClusterModal').classList.add('hidden');
+    }
+
+    async function submitQuickAddCluster(e) {
+        e.preventDefault();
+        const code = document.getElementById('quickClusterCode').value.trim();
+        const name = document.getElementById('quickClusterName').value.trim();
+        const desc = document.getElementById('quickClusterDesc').value.trim();
+
+        const formData = new FormData();
+        formData.append('code', code);
+        formData.append('name', name);
+        formData.append('description', desc);
+
+        try {
+            const res = await fetch("{% url 'api_add_cluster' %}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                // Append new option to secCluster
+                const select = document.getElementById('secCluster');
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = name;
+                select.appendChild(opt);
+                select.value = code;
+                closeQuickAddClusterModal();
+                // trigger change
+                if (typeof onGradeOrClusterChange === 'function') onGradeOrClusterChange();
+            } else {
+                showToast(data.message || 'Failed to add cluster', true);
+            }
+        } catch(err) {
+            showToast('Network error adding cluster', true);
+        }
+    }
+
+    function openQuickAddRoomModal() {
+        document.getElementById('quickAddRoomModal').classList.remove('hidden');
+    }
+    function closeQuickAddRoomModal() {
+        document.getElementById('quickAddRoomModal').classList.add('hidden');
+    }
+
+    async function submitQuickAddRoom(e) {
+        e.preventDefault();
+        const name = document.getElementById('quickRoomName').value.trim();
+        const cap = document.getElementById('quickRoomCap').value;
+        const bldg = document.getElementById('quickRoomBldg').value.trim();
+        const roomType = document.getElementById('quickRoomType').value;
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('capacity', cap);
+        formData.append('building', bldg);
+        formData.append('room_type', roomType);
+
+        try {
+            const res = await fetch("{% url 'api_add_room' %}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                // Append new option to secHomeroom
+                const selects = [document.getElementById('secHomeroom'), document.getElementById('editSecHomeroom')];
+                selects.forEach(sel => {
+                    if (sel) {
+                        const opt = document.createElement('option');
+                        opt.value = data.room_id;
+                        opt.textContent = `${name} (${cap} cap)`;
+                        sel.appendChild(opt);
+                    }
+                });
+                const secHomeroom = document.getElementById('secHomeroom');
+                if (secHomeroom) secHomeroom.value = data.room_id;
+                closeQuickAddRoomModal();
+            } else {
+                showToast(data.message || 'Failed to add room', true);
+            }
+        } catch(err) {
+            showToast('Network error adding room', true);
         }
     }
 </script>

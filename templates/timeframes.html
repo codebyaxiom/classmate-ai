@@ -26,10 +26,19 @@
                 <i class="fa-solid fa-plus text-deped-gold"></i>
                 <span>+ Add Time Frame</span>
             </button>
-            <button onclick="openPresetModal()" class="px-3.5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center space-x-1.5 shadow-sm">
+            <button onclick="openCopyModal()" class="px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-deped-darkblue font-bold text-xs transition flex items-center space-x-1.5 shadow-sm active:scale-95">
+                <i class="fa-solid fa-copy text-deped-blue"></i>
+                <span>📋 Copy from Grade...</span>
+            </button>
+            <button onclick="openPresetModal()" class="px-3.5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center space-x-1.5 shadow-sm active:scale-95">
                 <i class="fa-solid fa-bolt text-amber-600"></i>
                 <span>⚡ Load Presets</span>
             </button>
+            {% if periods %}
+            <button onclick="clearCurrentGradeSchedule()" class="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 text-xs font-bold transition flex items-center space-x-1 active:scale-95" title="Clear schedule for this grade">
+                <i class="fa-solid fa-trash-can text-[11px]"></i>
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -225,7 +234,24 @@
                 </button>
             </div>
 
-            <!-- Preset 2: Standard JHS -->
+            <!-- Preset 2: Strengthened SHS Immersion (90m Blocks) -->
+            <div class="p-4 rounded-2xl border border-indigo-200 bg-indigo-50/40 hover:border-indigo-400 transition cursor-pointer" onclick="applyPreset('shs_immersion')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-xs text-indigo-900 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-briefcase text-indigo-600"></i>
+                        <span>SHS 90-Min Immersion / Practicum Block</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">Senior High</span>
+                </div>
+                <p class="text-[11px] text-slate-600">
+                    7:00 Flag Ceremony, 90-minute immersion blocks (P1 7:30-9:00, P2 9:15-10:45, P3 10:45-12:15, P4 1:15-2:45, P5 2:45-4:15) with 15m recess &amp; 60m lunch.
+                </p>
+                <button class="mt-2.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] w-full">
+                    Apply to Grade {{ selected_grade|default:"12" }} &rarr;
+                </button>
+            </div>
+
+            <!-- Preset 3: Standard JHS -->
             <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:border-slate-300 transition cursor-pointer" onclick="applyPreset('jhs_standard')">
                 <div class="flex items-center justify-between mb-1">
                     <span class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
@@ -248,6 +274,57 @@
                 Close
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Modal: Copy Schedule from Another Grade -->
+<div id="copyModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-copy text-deped-blue"></i>
+                <span>Copy Bell Schedule from Grade</span>
+            </h3>
+            <button onclick="closeCopyModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <p class="text-xs text-slate-600">
+            Quickly duplicate all period slots, breaks, and intervals from another grade level into 
+            <strong class="text-deped-darkblue">
+                {% for g_val, g_label in grade_choices %}{% if selected_grade == g_val %}{{ g_label }}{% endif %}{% endfor %}
+            </strong>.
+        </p>
+
+        <form id="copyScheduleForm" onsubmit="submitCopySchedule(event)" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Source Grade Level (Copy From)</label>
+                <select name="source_grade" id="sourceGradeSelect" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    {% for g_val, g_label in grade_choices %}
+                    {% if g_val != selected_grade %}
+                    <option value="{{ g_val }}">{{ g_label }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <input type="hidden" name="target_grade" value="{{ selected_grade }}">
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px]">
+                <i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i>
+                This will overwrite any existing periods defined for <strong>{% for g_val, g_label in grade_choices %}{% if selected_grade == g_val %}{{ g_label }}{% endif %}{% endfor %}</strong>.
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeCopyModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold transition shadow">
+                    Duplicate Schedule
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -329,6 +406,57 @@ async function applyPreset(presetType) {
         }
     } catch(err) {
         alert("Failed to apply preset.");
+    }
+}
+
+function openCopyModal() {
+    document.getElementById('copyModal').classList.remove('hidden');
+}
+function closeCopyModal() {
+    document.getElementById('copyModal').classList.add('hidden');
+}
+
+async function submitCopySchedule(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+
+    try {
+        const res = await fetch("{% url 'api_copy_grade_timeframes' %}", {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) {
+        alert("Failed to connect to server.");
+    }
+}
+
+async function clearCurrentGradeSchedule() {
+    const grade = {{ selected_grade }};
+    if (!confirm(`Are you sure you want to clear all bell periods for Grade ${grade}? This will revert it to using fallback/universal slots.`)) return;
+
+    const formData = new FormData();
+    formData.append('grade_level', grade);
+
+    try {
+        const res = await fetch("{% url 'api_clear_grade_timeframes' %}", {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) {
+        alert("Failed to clear schedule.");
     }
 }
 </script>

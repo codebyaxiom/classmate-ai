@@ -256,10 +256,20 @@
                     </div>
                     <select id="tPrefVacant" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
                         <option value="">No Preference / Flexible</option>
+                        {% for grade_lbl, slots in grouped_timeframes.items %}
+                        <optgroup label="{{ grade_lbl }} Schedule">
+                            {% for tf in slots %}
+                            <option value="{{ tf.period_number }}">
+                                Period {{ tf.period_number }}: {{ tf.start_time|time:"g:i A" }} – {{ tf.end_time|time:"g:i A" }} ({{ tf.label }})
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% empty %}
                         {% for tf in timeframes %}
                         <option value="{{ tf.period_number }}">
                             {{ tf.start_time|time:"g:i A" }} - {{ tf.end_time|time:"g:i A" }} (Period {{ tf.period_number }})
                         </option>
+                        {% endfor %}
                         {% endfor %}
                     </select>
                 </div>

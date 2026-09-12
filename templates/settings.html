@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Settings & Facilities | CLASSMATE-AI{% endblock %}
+{% block title %}Settings Hub | CLASSMATE-AI{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-4xl mx-auto">
+<div class="space-y-6 max-w-6xl mx-auto">
 
     <!-- Header & Action Bar -->
     <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center space-x-2">
                 <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-deped-blue/10 text-deped-darkblue border border-deped-blue/20">DepEd Institutional Governance</span>
-                <span class="text-xs text-slate-500 font-semibold">School Identity, Signatories & Classrooms</span>
+                <span class="text-xs text-slate-500 font-semibold">School Profile, Signatories & Classrooms</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 mt-1 flex items-center space-x-2">
                 <i class="fa-solid fa-sliders text-deped-blue"></i>
-                <span>School Profile, Signatories & Classrooms</span>
+                <span>Institutional Governance & Settings Hub</span>
             </h1>
             <p class="text-xs text-slate-500">
-                Manage institutional letterheads, the 5 official document signatories, and your school's physical classroom/lab inventory.
+                Organize school identity, 5-tier document signatories, academic terms, physical learning facilities, curriculum clusters, and Magna Carta workload rules.
             </p>
         </div>
 
@@ -25,10 +25,6 @@
             <button onclick="resetDefaults()" class="px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition active:scale-95 flex items-center space-x-1.5 shadow-sm">
                 <i class="fa-solid fa-rotate-left text-slate-400"></i>
                 <span>Reset Signatories</span>
-            </button>
-            <button form="settingsForm" type="submit" class="px-5 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-md shadow-blue-500/20 transition active:scale-95 flex items-center space-x-2">
-                <i class="fa-solid fa-floppy-disk text-deped-gold"></i>
-                <span>Save Profile</span>
             </button>
         </div>
     </div>
@@ -39,243 +35,519 @@
         <span id="toastMessage">Settings successfully saved!</span>
     </div>
 
-    <form id="settingsForm" onsubmit="submitSettings(event)" class="space-y-6">
-
-        <!-- 1. Institutional Identity -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <div class="flex items-center space-x-2 border-b border-slate-100 pb-3">
-                <i class="fa-solid fa-school text-deped-blue text-sm"></i>
-                <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">I. Institutional Letterhead Information</h2>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div class="sm:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">Official School Name</label>
-                    <input type="text" name="school_name" value="{{ profile.school_name }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">DepEd Region</label>
-                    <input type="text" name="region" value="{{ profile.region }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Schools Division</label>
-                    <input type="text" name="division" value="{{ profile.division }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">School ID Number</label>
-                    <input type="text" name="school_id" value="{{ profile.school_id }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">District Office (Optional)</label>
-                    <input type="text" name="district" value="{{ profile.district }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
-                </div>
-            </div>
-        </div>
-
-        <!-- 2. Official DepEd Signatories (Hierarchical Block) -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-pen-nib text-deped-blue text-sm"></i>
-                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">II. Official Document Signatories</h2>
-                </div>
-                <span class="text-[11px] text-slate-500 font-semibold">5-Tier DepEd Standard</span>
-            </div>
-
-            <!-- Tier 1: School & District Level (Row 1 on printout) -->
-            <div class="space-y-3">
-                <span class="text-xs font-extrabold text-deped-darkblue uppercase tracking-wide">Tier 1: School & CID Verification</span>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                    <!-- Prepared by -->
-                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-deped-darkblue">1. Prepared by</span>
-                        <div>
-                            <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
-                            <input type="text" name="prepared_by_name" value="{{ profile.prepared_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
-                            <input type="text" name="prepared_by_title" value="{{ profile.prepared_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                    </div>
-
-                    <!-- Reviewed by -->
-                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800">2. Reviewed</span>
-                        <div>
-                            <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
-                            <input type="text" name="reviewed_by_name" value="{{ profile.reviewed_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
-                            <input type="text" name="reviewed_by_title" value="{{ profile.reviewed_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                    </div>
-
-                    <!-- Verified by -->
-                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800">3. Verified</span>
-                        <div>
-                            <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
-                            <input type="text" name="verified_by_name" value="{{ profile.verified_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
-                            <input type="text" name="verified_by_title" value="{{ profile.verified_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tier 2: Division Leadership (Rows 2 & 3 on printout) -->
-            <div class="space-y-3 pt-2">
-                <span class="text-xs font-extrabold text-deped-darkblue uppercase tracking-wide">Tier 2: Division Office Approval</span>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <!-- Recommending Approval -->
-                    <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900">4. Recommending Approval</span>
-                        <div>
-                            <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
-                            <input type="text" name="recommending_name" value="{{ profile.recommending_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
-                            <input type="text" name="recommending_title" value="{{ profile.recommending_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                    </div>
-
-                    <!-- APPROVED -->
-                    <div class="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-2">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200 text-emerald-900">5. Final Approval</span>
-                        <div>
-                            <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name (SDS)</label>
-                            <input type="text" name="approved_by_name" value="{{ profile.approved_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                        <div>
-                            <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
-                            <input type="text" name="approved_by_title" value="{{ profile.approved_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs transition shadow-md">
-                    Save Profile & Signatories
-                </button>
-            </div>
-        </div>
-
-    </form>
-
-    <!-- 3. School Classrooms & Facilities Inventory (Direct Management) -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-door-open text-deped-blue text-sm"></i>
-                <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">III. School Classrooms & Learning Facilities ({{ rooms|length }})</h2>
-            </div>
-            <button type="button" onclick="openAddRoomModal()" class="px-3.5 py-1.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 active:scale-95">
-                <i class="fa-solid fa-plus text-deped-gold"></i>
-                <span>+ Add Classroom</span>
+    <!-- 5-Tab Categorized Navigation Bar -->
+    <div class="bg-white rounded-2xl p-2 border border-slate-200 shadow-sm overflow-x-auto">
+        <div class="flex items-center space-x-2 min-w-max">
+            <button type="button" onclick="switchTab('identity')" id="tab-btn-identity" class="settings-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-deped-blue text-white shadow-sm shadow-blue-600/30">
+                <i class="fa-solid fa-landmark"></i>
+                <span>School & Signatories</span>
             </button>
-        </div>
-
-        <p class="text-xs text-slate-500">
-            Establish custom classrooms, science labs, computer labs, and TVL workshops according to your school campus parts and room count.
-        </p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-            {% for r in rooms %}
-            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 hover:border-slate-300 transition">
-                <div class="space-y-1">
-                    <div class="flex items-center space-x-1.5">
-                        <span class="font-bold text-xs text-slate-900">{{ r.name }}</span>
-                    </div>
-                    <div>
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold 
-                            {% if r.room_type == 'science_lab' %}bg-purple-100 text-purple-800 border border-purple-200
-                            {% elif r.room_type == 'computer_lab' %}bg-cyan-100 text-cyan-800 border border-cyan-200
-                            {% elif r.room_type == 'tvl_workshop' %}bg-amber-100 text-amber-800 border border-amber-200
-                            {% elif r.room_type == 'gym' %}bg-emerald-100 text-emerald-800 border border-emerald-200
-                            {% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
-                            {{ r.get_room_type_display }}
-                        </span>
-                    </div>
-                    <div class="text-[11px] text-slate-500 flex items-center space-x-2 pt-0.5">
-                        <span><i class="fa-regular fa-building text-[10px] mr-1"></i>{{ r.building|default:"Main Wing" }}</span>
-                        <span>•</span>
-                        <span>{{ r.capacity }} seats</span>
-                    </div>
-                </div>
-                <button type="button" onclick="deleteRoom({{ r.id }}, '{{ r.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete Room">
-                    <i class="fa-solid fa-trash text-xs"></i>
-                </button>
-            </div>
-            {% empty %}
-            <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
-                No classrooms registered yet. Click "+ Add Classroom" above to establish school facilities.
-            </div>
-            {% endfor %}
+            <button type="button" onclick="switchTab('academic')" id="tab-btn-academic" class="settings-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>Academic Cycle & Terms</span>
+            </button>
+            <button type="button" onclick="switchTab('facilities')" id="tab-btn-facilities" class="settings-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i class="fa-solid fa-door-open"></i>
+                <span>Facilities & Classrooms</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700">{{ rooms|length }}</span>
+            </button>
+            <button type="button" onclick="switchTab('clusters')" id="tab-btn-clusters" class="settings-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i class="fa-solid fa-shapes"></i>
+                <span>Curriculum Clusters</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700">{{ clusters|length }}</span>
+            </button>
+            <button type="button" onclick="switchTab('workload')" id="tab-btn-workload" class="settings-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i class="fa-solid fa-award"></i>
+                <span>Ancillary & Workload Policy</span>
+            </button>
         </div>
     </div>
 
-    <!-- 4. Curriculum Clusters & Strands Configuration (Direct Management) -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-layer-group text-deped-blue text-sm"></i>
-                <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">IV. Curriculum Clusters & Strands ({{ clusters|length }})</h2>
-            </div>
-            <button type="button" onclick="openAddClusterModal()" class="px-3.5 py-1.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 active:scale-95">
-                <i class="fa-solid fa-plus text-deped-gold"></i>
-                <span>+ Add Cluster</span>
-            </button>
-        </div>
-
-        <p class="text-xs text-slate-500">
-            Establish and manage custom curriculum clusters, academic tracks, and specialized strands (e.g. Pure Academic, STEM, HUMSS, TVL) to tailor section curricula and teaching loads.
-        </p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-            {% for c in clusters %}
-            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 hover:border-slate-300 transition">
-                <div class="space-y-1">
-                    <div class="flex items-center space-x-1.5">
-                        <span class="font-bold text-xs text-slate-900">{{ c.name }}</span>
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold 
-                            {% if c.curriculum_level == 'jhs' %}bg-blue-100 text-blue-800 border border-blue-200
-                            {% elif c.curriculum_level == 'shs' %}bg-purple-100 text-purple-800 border border-purple-200
-                            {% else %}bg-emerald-100 text-emerald-800 border border-emerald-200{% endif %}">
-                            {{ c.get_curriculum_level_display }}
-                        </span>
-                        <span class="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-200 text-slate-700">
-                            {{ c.code }}
-                        </span>
-                    </div>
-                    {% if c.description %}
-                    <p class="text-[11px] text-slate-500 line-clamp-2 pt-0.5">{{ c.description }}</p>
-                    {% endif %}
+    <!-- ==================== TAB 1: SCHOOL IDENTITY & SIGNATORIES ==================== -->
+    <div id="tab-content-identity" class="settings-tab-pane space-y-6">
+        <form id="settingsForm" onsubmit="submitSettings(event)" class="space-y-6">
+            <!-- 1. Institutional Identity -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center space-x-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-school text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">I. Institutional Letterhead Information</h2>
                 </div>
-                <button type="button" onclick="deleteCluster({{ c.id }}, '{{ c.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0" title="Delete Cluster">
-                    <i class="fa-solid fa-trash text-xs"></i>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div class="sm:col-span-2">
+                        <label class="block font-bold text-slate-700 mb-1">Official School Name</label>
+                        <input type="text" name="school_name" value="{{ profile.school_name }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">DepEd Region</label>
+                        <input type="text" name="region" value="{{ profile.region }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Schools Division</label>
+                        <input type="text" name="division" value="{{ profile.division }}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">School ID Number</label>
+                        <input type="text" name="school_id" value="{{ profile.school_id }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">District Office (Optional)</label>
+                        <input type="text" name="district" value="{{ profile.district }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Official DepEd Signatories (Hierarchical Block) -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-pen-nib text-deped-blue text-sm"></i>
+                        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">II. Official Document Signatories</h2>
+                    </div>
+                    <span class="text-[11px] text-slate-500 font-semibold">5-Tier DepEd Standard</span>
+                </div>
+
+                <!-- Tier 1: School & District Level (Row 1 on printout) -->
+                <div class="space-y-3">
+                    <span class="text-xs font-extrabold text-deped-darkblue uppercase tracking-wide">Tier 1: School & CID Verification</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                        <!-- Prepared by -->
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-deped-darkblue">1. Prepared by</span>
+                            <div>
+                                <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
+                                <input type="text" name="prepared_by_name" value="{{ profile.prepared_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
+                                <input type="text" name="prepared_by_title" value="{{ profile.prepared_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                        </div>
+
+                        <!-- Reviewed by -->
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800">2. Reviewed</span>
+                            <div>
+                                <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
+                                <input type="text" name="reviewed_by_name" value="{{ profile.reviewed_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
+                                <input type="text" name="reviewed_by_title" value="{{ profile.reviewed_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                        </div>
+
+                        <!-- Verified by -->
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800">3. Verified</span>
+                            <div>
+                                <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
+                                <input type="text" name="verified_by_name" value="{{ profile.verified_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
+                                <input type="text" name="verified_by_title" value="{{ profile.verified_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tier 2: Division Leadership (Rows 2 & 3 on printout) -->
+                <div class="space-y-3 pt-2">
+                    <span class="text-xs font-extrabold text-deped-darkblue uppercase tracking-wide">Tier 2: Division Office Approval</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <!-- Recommending Approval -->
+                        <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900">4. Recommending Approval</span>
+                            <div>
+                                <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name</label>
+                                <input type="text" name="recommending_name" value="{{ profile.recommending_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
+                                <input type="text" name="recommending_title" value="{{ profile.recommending_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                        </div>
+
+                        <!-- APPROVED -->
+                        <div class="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-2">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200 text-emerald-900">5. Final Approval</span>
+                            <div>
+                                <label class="block font-bold text-slate-600 text-[11px] mb-1">Signatory Name (SDS)</label>
+                                <input type="text" name="approved_by_name" value="{{ profile.approved_by_name }}" required class="w-full px-2.5 py-2 rounded-xl border border-slate-300 font-bold text-xs outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-500 text-[10px] mb-1">Official Position / Title</label>
+                                <input type="text" name="approved_by_title" value="{{ profile.approved_by_title }}" required class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-[11px] outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end pt-2">
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs transition shadow-md flex items-center space-x-2">
+                        <i class="fa-solid fa-floppy-disk text-deped-gold"></i>
+                        <span>Save Profile & Signatories</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== TAB 2: ACADEMIC CYCLE & TERMS ==================== -->
+    <div id="tab-content-academic" class="settings-tab-pane hidden space-y-6">
+        <!-- Active Cycle Summary Banner -->
+        <div class="bg-gradient-to-r from-deped-blue to-deped-darkblue rounded-2xl p-5 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-deped-gold">Current Active Operational Cycle</span>
+                <h3 class="text-xl font-bold font-heading mt-0.5">
+                    {{ profile.active_academic_year.name|default:"No Active School Year Selected" }}
+                </h3>
+                <p class="text-xs text-blue-100 mt-1">
+                    Active Term: <strong>{{ profile.active_term.name|default:"General Academic Period" }}</strong>
+                </p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openAddAYModal()" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>+ New S.Y.</span>
+                </button>
+                <button onclick="openAddTermModal()" class="px-3.5 py-2 rounded-xl bg-deped-gold text-slate-900 text-xs font-bold transition flex items-center space-x-1.5 shadow">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>+ New Term</span>
                 </button>
             </div>
-            {% empty %}
-            <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
-                No curriculum clusters registered. Click "+ Add Cluster" above to establish your academic tracks.
+        </div>
+
+        <!-- Academic Years Grid -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-calendar-days text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">School Academic Years ({{ academic_years|length }})</h2>
+                </div>
+                <button type="button" onclick="openAddAYModal()" class="px-3 py-1.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>Add School Year</span>
+                </button>
             </div>
-            {% endfor %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {% for ay in academic_years %}
+                <div class="p-4 rounded-2xl border {% if ay.is_active %}border-deped-blue bg-blue-50/40{% else %}border-slate-200 bg-slate-50{% endif %} flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-sm text-slate-900">{{ ay.name }}</span>
+                            {% if ay.is_active %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-deped-blue text-white">Active</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-[11px] text-slate-500 block mt-0.5">S.Y. Operational Cycle</span>
+                    </div>
+
+                    {% if not ay.is_active %}
+                    <button onclick="toggleAY({{ ay.id }})" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:border-deped-blue hover:text-deped-blue text-xs font-bold transition">
+                        Set Active
+                    </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="col-span-3 p-8 text-center text-slate-400 text-xs">
+                    No academic years registered. Click "+ Add School Year" to configure.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Academic Terms / Trimesters Grid -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Academic Terms / Trimesters / Semesters ({{ terms|length }})</h2>
+                </div>
+                <button type="button" onclick="openAddTermModal()" class="px-3 py-1.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>Add Term</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {% for t in terms %}
+                <div class="p-4 rounded-2xl border {% if t.is_active %}border-amber-400 bg-amber-50/40{% else %}border-slate-200 bg-slate-50{% endif %} flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-sm text-slate-900">{{ t.name }}</span>
+                            {% if t.is_active %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">Active</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-[11px] text-slate-500 block mt-0.5">{{ t.academic_year.name }} &bull; {{ t.get_term_type_display }}</span>
+                    </div>
+
+                    {% if not t.is_active %}
+                    <button onclick="toggleTerm({{ t.id }})" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:border-amber-500 hover:text-amber-700 text-xs font-bold transition">
+                        Set Active
+                    </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="col-span-3 p-8 text-center text-slate-400 text-xs">
+                    No academic terms registered. Click "+ Add Term" to create a trimester, semester, or quarter.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 3: FACILITIES & CLASSROOMS ==================== -->
+    <div id="tab-content-facilities" class="settings-tab-pane hidden space-y-6">
+        <!-- Classrooms Inventory -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-door-open text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Physical Classrooms & Laboratories ({{ rooms|length }})</h2>
+                </div>
+                <button type="button" onclick="openAddRoomModal()" class="px-3.5 py-1.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 active:scale-95">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>+ Add Classroom</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                Establish custom classrooms, science labs, computer labs, and TVL workshops according to your school campus parts and room count.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {% for r in rooms %}
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 hover:border-slate-300 transition">
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="font-bold text-xs text-slate-900">{{ r.name }}</span>
+                        </div>
+                        <div>
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold 
+                                {% if r.room_type == 'science_lab' %}bg-purple-100 text-purple-800 border border-purple-200
+                                {% elif r.room_type == 'computer_lab' %}bg-cyan-100 text-cyan-800 border border-cyan-200
+                                {% elif r.room_type == 'tvl_workshop' %}bg-amber-100 text-amber-800 border border-amber-200
+                                {% elif r.room_type == 'gym' %}bg-emerald-100 text-emerald-800 border border-emerald-200
+                                {% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+                                {{ r.room_type_display_name }}
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 flex items-center space-x-2 pt-0.5">
+                            <span><i class="fa-regular fa-building text-[10px] mr-1"></i>{{ r.building|default:"Main Wing" }}</span>
+                            <span>•</span>
+                            <span>{{ r.capacity }} seats</span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="deleteRoom({{ r.id }}, '{{ r.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete Room">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+                {% empty %}
+                <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
+                    No classrooms registered yet. Click "+ Add Classroom" above to establish school facilities.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Facility Types Catalog -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-microchip text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Facility & Room Categories ({{ facility_types|length }})</h2>
+                </div>
+                <button type="button" onclick="openAddFacilityTypeModal()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 active:scale-95">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>+ Add Facility Category</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                Define specialized learning facility types required by subjects (e.g. Speech Lab, Audio-Visual Room, Robotics Center, Culinary Kitchen).
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {% for ft in facility_types %}
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 hover:border-slate-300 transition">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-xs text-slate-900">{{ ft.name }}</span>
+                            <span class="font-mono text-[10px] text-slate-400 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">{{ ft.code }}</span>
+                        </div>
+                        {% if ft.description %}
+                        <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">{{ ft.description }}</p>
+                        {% endif %}
+                    </div>
+                    <button type="button" onclick="deleteFacilityType({{ ft.id }}, '{{ ft.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete Facility Type">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+                {% empty %}
+                <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
+                    No custom facility categories added. Standard categories (Lecture, Science Lab, Computer Lab, TVL, Gym) are currently active.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 4: CURRICULUM CLUSTERS & STRANDS ==================== -->
+    <div id="tab-content-clusters" class="settings-tab-pane hidden space-y-6">
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-layer-group text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Curriculum Clusters & Strands ({{ clusters|length }})</h2>
+                </div>
+                <button type="button" onclick="openAddClusterModal()" class="px-3.5 py-1.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 active:scale-95">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>+ Add Cluster</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                Establish and manage custom curriculum clusters, academic tracks, and specialized strands (e.g. Pure Academic, STEM, HUMSS, TVL) to tailor section curricula and teaching loads.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {% for c in clusters %}
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 hover:border-slate-300 transition">
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="font-bold text-xs text-slate-900">{{ c.name }}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold 
+                                {% if c.curriculum_level == 'jhs' %}bg-blue-100 text-blue-800 border border-blue-200
+                                {% elif c.curriculum_level == 'shs' %}bg-purple-100 text-purple-800 border border-purple-200
+                                {% else %}bg-emerald-100 text-emerald-800 border border-emerald-200{% endif %}">
+                                {{ c.get_curriculum_level_display }}
+                            </span>
+                            <span class="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-200 text-slate-700">
+                                {{ c.code }}
+                            </span>
+                        </div>
+                        {% if c.description %}
+                        <p class="text-[11px] text-slate-500 line-clamp-2 pt-0.5">{{ c.description }}</p>
+                        {% endif %}
+                    </div>
+                    <button type="button" onclick="deleteCluster({{ c.id }}, '{{ c.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0" title="Delete Cluster">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+                {% empty %}
+                <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
+                    No curriculum clusters registered. Click "+ Add Cluster" above to establish your academic tracks.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 5: ANCILLARY & WORKLOAD POLICY ==================== -->
+    <div id="tab-content-workload" class="settings-tab-pane hidden space-y-6">
+        <!-- Magna Carta Workload Caps -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-scale-balanced text-deped-blue text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">DepEd Magna Carta & DO 005 s. 2024 Workload Caps</h2>
+                </div>
+                <span class="text-[11px] text-slate-500 font-semibold">Statutory Limits</span>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                Under the Magna Carta for Public School Teachers (RA 4670) and DepEd Order No. 005, s. 2024, classroom teachers are entitled to teaching hour caps and designated preparation intervals.
+            </p>
+
+            <form onsubmit="submitWorkloadPolicy(event)" class="space-y-4 pt-2 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                        <label class="block font-bold text-slate-700">Max Daily Teaching Hours</label>
+                        <input type="number" id="policyMaxDaily" value="{{ profile.max_daily_teaching_hours|default:6 }}" min="1" max="10" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <span class="text-[10px] text-slate-400 block">DepEd RA 4670 Cap: 6 hours/day</span>
+                    </div>
+
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                        <label class="block font-bold text-slate-700">Max Weekly Teaching Hours</label>
+                        <input type="number" id="policyMaxWeekly" value="{{ profile.max_weekly_teaching_hours|default:30 }}" min="1" max="50" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <span class="text-[10px] text-slate-400 block">Typical Max Teaching: 30 hours/week</span>
+                    </div>
+
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                        <label class="block font-bold text-slate-700">Official Workweek Total</label>
+                        <input type="number" id="policyStandardWorkweek" value="{{ profile.standard_workweek_hours|default:40 }}" min="20" max="60" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <span class="text-[10px] text-slate-400 block">Teaching + Ancillary + Prep: 40 hrs</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end">
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs transition shadow flex items-center space-x-1.5">
+                        <i class="fa-solid fa-floppy-disk text-deped-gold"></i>
+                        <span>Save Workload Policy</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Ancillary & Special Designations Catalog -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-award text-amber-600 text-sm"></i>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Ancillary & Special Designation Catalog ({{ ancillary_catalog|length }})</h2>
+                </div>
+                <button type="button" onclick="openAddAncillaryCatalogModal()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 active:scale-95">
+                    <i class="fa-solid fa-plus text-deped-gold"></i>
+                    <span>+ Add Designation</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                Configure official school designations that faculty members can assume (e.g. Class Adviser, LIS Coordinator, DRRM, Guidance Coordinator) and define default credited weekly workload hours.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {% for ac in ancillary_catalog %}
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 hover:border-slate-300 transition">
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-xs text-slate-900">{{ ac.name }}</span>
+                            <span class="font-mono text-[10px] text-slate-400 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">{{ ac.code }}</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-[11px] text-slate-600">
+                            <span class="font-bold text-deped-darkblue"><i class="fa-solid fa-clock text-[10px] mr-1"></i>{{ ac.default_weekly_hours }} hrs/wk</span>
+                            <span>credited</span>
+                        </div>
+                        {% if ac.description %}
+                        <p class="text-[11px] text-slate-500 line-clamp-2">{{ ac.description }}</p>
+                        {% endif %}
+                    </div>
+                    <button type="button" onclick="deleteAncillaryCatalog({{ ac.id }}, '{{ ac.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete Designation">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
+                {% empty %}
+                <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
+                    No custom ancillary designations added. Standard presets (Class Adviser, LIS, DRRM, Guidance, etc.) are available in the faculty desk.
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
 </div>
+
+<!-- ==================== MODALS ==================== -->
 
 <!-- Modal: Add Classroom -->
 <div id="addRoomModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -293,7 +565,7 @@
         <form id="addRoomForm" onsubmit="submitAddRoom(event)" class="space-y-4 text-xs">
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Classroom Name / Room Number</label>
-                <input type="text" name="name" required placeholder="e.g. Room 101, Science Lab A, Mac Lab 2, TVL Room" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                <input type="text" name="name" required placeholder="e.g. Room 101, Science Lab A, TVL Room" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
             </div>
 
             <div>
@@ -328,6 +600,47 @@
     </div>
 </div>
 
+<!-- Modal: Add Facility Type Category -->
+<div id="addFacilityTypeModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-microchip text-deped-blue"></i>
+                <span>Add Facility Category</span>
+            </h3>
+            <button onclick="closeAddFacilityTypeModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="addFacilityTypeForm" onsubmit="submitAddFacilityType(event)" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Facility Code *</label>
+                <input type="text" name="code" required placeholder="e.g. speech_lab, culinary_arts, robotics" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-[11px] outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Display Name *</label>
+                <input type="text" name="name" required placeholder="e.g. Speech & Language Lab, Culinary Kitchen" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Description (Optional)</label>
+                <textarea name="description" rows="2" placeholder="Describe the physical requirements or equipment in this facility..." class="w-full px-3 py-2 rounded-xl border border-slate-300 font-normal outline-none focus:ring-2 focus:ring-deped-blue"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeAddFacilityTypeModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold transition shadow">
+                    Save Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: Add Curriculum Cluster -->
 <div id="addClusterModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
@@ -344,12 +657,12 @@
         <form id="addClusterForm" onsubmit="submitAddCluster(event)" class="space-y-4 text-xs">
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Cluster / Strand Name *</label>
-                <input type="text" name="name" required placeholder="e.g. Pure Academic, STEM Cluster, Humanities, TVL ICT" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                <input type="text" name="name" required placeholder="e.g. Pure Academic, STEM Cluster, TVL ICT" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
             </div>
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Cluster Code / Identifier (Optional)</label>
-                <input type="text" name="code" placeholder="e.g. pure_academic, stem, tvl_ict (auto-generated if empty)" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-[11px] outline-none focus:ring-2 focus:ring-deped-blue">
+                <input type="text" name="code" placeholder="e.g. pure_academic, stem, tvl_ict" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-[11px] outline-none focus:ring-2 focus:ring-deped-blue">
             </div>
 
             <div>
@@ -378,7 +691,179 @@
     </div>
 </div>
 
+<!-- Modal: Add Academic Year -->
+<div id="addAYModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-calendar-plus text-deped-blue"></i>
+                <span>Add School Academic Year</span>
+            </h3>
+            <button onclick="closeAddAYModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="addAYForm" onsubmit="submitAddAY(event)" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">School Year Name *</label>
+                <input type="text" name="name" required placeholder="e.g. 2026-2027, 2027-2028" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="p-3 bg-blue-50 rounded-xl border border-blue-200">
+                <label class="flex items-center space-x-2.5 cursor-pointer">
+                    <input type="checkbox" name="set_active" value="true" class="w-4 h-4 rounded text-deped-blue focus:ring-deped-blue">
+                    <span class="font-bold text-deped-darkblue">Set as active operational cycle</span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeAddAYModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold transition shadow">
+                    Create S.Y.
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Academic Term -->
+<div id="addTermModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-clock-rotate-left text-deped-blue"></i>
+                <span>Add Academic Term / Trimester</span>
+            </h3>
+            <button onclick="closeAddTermModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="addTermForm" onsubmit="submitAddTerm(event)" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Target School Year</label>
+                <select name="academic_year_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    {% for ay in academic_years %}
+                    <option value="{{ ay.id }}" {% if ay.is_active %}selected{% endif %}>{{ ay.name }} {% if ay.is_active %}(Active){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Term Name *</label>
+                <input type="text" name="name" required placeholder="e.g. 1st Trimester, 2nd Trimester, 1st Semester" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Term Category</label>
+                <select name="term_type" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    {% for tt_val, tt_label in term_types %}
+                    <option value="{{ tt_val }}">{{ tt_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                <label class="flex items-center space-x-2.5 cursor-pointer">
+                    <input type="checkbox" name="set_active" value="true" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                    <span class="font-bold text-amber-900">Set as active term</span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeAddTermModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold transition shadow">
+                    Create Term
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Ancillary Catalog Item -->
+<div id="addAncillaryCatalogModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-award text-amber-600"></i>
+                <span>Add Special Designation to Catalog</span>
+            </h3>
+            <button onclick="closeAddAncillaryCatalogModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="addAncillaryCatalogForm" onsubmit="submitAddAncillaryCatalog(event)" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Designation Title *</label>
+                <input type="text" name="name" required placeholder="e.g. School Paper Adviser, Sports Coordinator" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Designation Code</label>
+                    <input type="text" name="code" placeholder="e.g. school_paper" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-[11px] outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Default Weekly Hours</label>
+                    <input type="number" name="default_weekly_hours" value="2.0" step="0.5" min="0.5" max="20" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Notes / Terms of Reference</label>
+                <textarea name="description" rows="2" placeholder="Guidelines or duties attached to this role..." class="w-full px-3 py-2 rounded-xl border border-slate-300 font-normal outline-none focus:ring-2 focus:ring-deped-blue"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeAddAncillaryCatalogModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow">
+                    Save Designation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+// Tab Switching
+function switchTab(tabId) {
+    document.querySelectorAll('.settings-tab-pane').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-deped-blue', 'text-white', 'shadow-sm', 'shadow-blue-600/30');
+        btn.classList.add('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+    });
+
+    const targetPane = document.getElementById('tab-content-' + tabId);
+    const targetBtn = document.getElementById('tab-btn-' + tabId);
+
+    if (targetPane) targetPane.classList.remove('hidden');
+    if (targetBtn) {
+        targetBtn.classList.remove('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+        targetBtn.classList.add('bg-deped-blue', 'text-white', 'shadow-sm', 'shadow-blue-600/30');
+    }
+
+    try {
+        history.replaceState(null, null, '#' + tabId);
+    } catch(e) {}
+}
+
+// Check initial hash
+window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (['identity', 'academic', 'facilities', 'clusters', 'workload'].includes(hash)) {
+        switchTab(hash);
+    }
+});
+
+// Settings & Signatories
 async function submitSettings(e) {
     e.preventDefault();
     const form = e.target;
@@ -424,96 +909,228 @@ async function resetDefaults() {
     }
 }
 
-function openAddRoomModal() {
-    document.getElementById('addRoomModal').classList.remove('hidden');
-}
-function closeAddRoomModal() {
-    document.getElementById('addRoomModal').classList.add('hidden');
-}
-
-async function submitAddRoom(e) {
+// Workload Policy
+async function submitWorkloadPolicy(e) {
     e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
+    const formData = new FormData();
+    formData.append('max_daily_teaching_hours', document.getElementById('policyMaxDaily').value);
+    formData.append('max_weekly_teaching_hours', document.getElementById('policyMaxWeekly').value);
+    formData.append('standard_workweek_hours', document.getElementById('policyStandardWorkweek').value);
 
     try {
-        const res = await fetch("{% url 'api_add_room' %}", {
+        const res = await fetch("{% url 'api_update_workload_policy' %}", {
             method: 'POST',
             body: formData,
         });
         const data = await res.json();
         if (data.success) {
-            window.location.reload();
+            const toast = document.getElementById('saveToast');
+            document.getElementById('toastMessage').innerText = data.message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3500);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
             alert("Error: " + data.message);
         }
     } catch(err) {
-        alert("Failed to establish classroom.");
+        alert("Failed to update workload policy.");
     }
+}
+
+// Classrooms
+function openAddRoomModal() { document.getElementById('addRoomModal').classList.remove('hidden'); }
+function closeAddRoomModal() { document.getElementById('addRoomModal').classList.add('hidden'); }
+
+async function submitAddRoom(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch("{% url 'api_add_room' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#facilities';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to establish classroom."); }
 }
 
 async function deleteRoom(roomId, roomName) {
     if (!confirm(`Are you sure you want to delete classroom "${roomName}"?`)) return;
-
     try {
-        const res = await fetch(`/api/rooms/delete/${roomId}/`, {
-            method: 'POST',
-        });
+        const res = await fetch(`/api/rooms/delete/${roomId}/`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
+            window.location.hash = '#facilities';
             window.location.reload();
         } else {
             alert("Error: " + data.message);
         }
-    } catch(err) {
-        alert("Failed to delete classroom.");
-    }
+    } catch(err) { alert("Failed to delete classroom."); }
 }
 
-function openAddClusterModal() {
-    document.getElementById('addClusterModal').classList.remove('hidden');
+// Facility Types
+function openAddFacilityTypeModal() { document.getElementById('addFacilityTypeModal').classList.remove('hidden'); }
+function closeAddFacilityTypeModal() { document.getElementById('addFacilityTypeModal').classList.add('hidden'); }
+
+async function submitAddFacilityType(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch("{% url 'api_add_facility_type' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#facilities';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to add facility category."); }
 }
-function closeAddClusterModal() {
-    document.getElementById('addClusterModal').classList.add('hidden');
+
+async function deleteFacilityType(ftId, ftName) {
+    if (!confirm(`Are you sure you want to delete facility category "${ftName}"?`)) return;
+    try {
+        const res = await fetch(`/api/facility-types/delete/${ftId}/`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#facilities';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to delete facility category."); }
 }
+
+// Curriculum Clusters
+function openAddClusterModal() { document.getElementById('addClusterModal').classList.remove('hidden'); }
+function closeAddClusterModal() { document.getElementById('addClusterModal').classList.add('hidden'); }
 
 async function submitAddCluster(e) {
     e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-
+    const formData = new FormData(e.target);
     try {
-        const res = await fetch("{% url 'api_add_cluster' %}", {
-            method: 'POST',
-            body: formData,
-        });
+        const res = await fetch("{% url 'api_add_cluster' %}", { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
+            window.location.hash = '#clusters';
             window.location.reload();
         } else {
             alert("Error: " + data.message);
         }
-    } catch(err) {
-        alert("Failed to establish curriculum cluster.");
-    }
+    } catch(err) { alert("Failed to establish curriculum cluster."); }
 }
 
 async function deleteCluster(clusterId, clusterName) {
     if (!confirm(`Are you sure you want to delete curriculum cluster "${clusterName}"?`)) return;
-
     try {
-        const res = await fetch(`/api/clusters/delete/${clusterId}/`, {
-            method: 'POST',
-        });
+        const res = await fetch(`/api/clusters/delete/${clusterId}/`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
+            window.location.hash = '#clusters';
             window.location.reload();
         } else {
             alert("Error: " + data.message);
         }
-    } catch(err) {
-        alert("Failed to delete curriculum cluster.");
-    }
+    } catch(err) { alert("Failed to delete cluster."); }
+}
+
+// Academic Year
+function openAddAYModal() { document.getElementById('addAYModal').classList.remove('hidden'); }
+function closeAddAYModal() { document.getElementById('addAYModal').classList.add('hidden'); }
+
+async function submitAddAY(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch("{% url 'api_add_academic_year' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#academic';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to add academic year."); }
+}
+
+async function toggleAY(ayId) {
+    try {
+        const res = await fetch(`/api/academic-years/${ayId}/toggle/`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#academic';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to toggle academic year."); }
+}
+
+// Academic Term
+function openAddTermModal() { document.getElementById('addTermModal').classList.remove('hidden'); }
+function closeAddTermModal() { document.getElementById('addTermModal').classList.add('hidden'); }
+
+async function submitAddTerm(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch("{% url 'api_add_term' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#academic';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to add term."); }
+}
+
+async function toggleTerm(termId) {
+    try {
+        const res = await fetch(`/api/terms/${termId}/toggle/`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#academic';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to toggle term."); }
+}
+
+// Ancillary Catalog
+function openAddAncillaryCatalogModal() { document.getElementById('addAncillaryCatalogModal').classList.remove('hidden'); }
+function closeAddAncillaryCatalogModal() { document.getElementById('addAncillaryCatalogModal').classList.add('hidden'); }
+
+async function submitAddAncillaryCatalog(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch("{% url 'api_add_ancillary_catalog' %}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#workload';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to add designation."); }
+}
+
+async function deleteAncillaryCatalog(catId, catName) {
+    if (!confirm(`Are you sure you want to delete designation "${catName}"?`)) return;
+    try {
+        const res = await fetch(`/api/ancillary-catalog/${catId}/delete/`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#workload';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to delete designation."); }
 }
 </script>
 {% endblock %}

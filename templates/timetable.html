@@ -78,7 +78,34 @@
             </div>
         </form>
 
-        <!-- Mobile Phone Day-Selector Pills (Crucial for Phone Viewing) -->
+        <!-- Bell Schedule Indicator & Grade Switcher -->
+        <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-deped-darkblue border border-blue-200 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-clock text-deped-blue"></i>
+                    <span>Bell Schedule: <strong>{{ active_grade_label }}</strong></span>
+                </span>
+                <span class="text-[11px] text-slate-500">
+                    {% if filter_type == 'section' %}
+                        (Auto-matched to section grade level)
+                    {% else %}
+                        (Grid intervals matched to {{ active_grade_label }})
+                    {% endif %}
+                </span>
+            </div>
+
+            {% if filter_type != 'section' %}
+            <div class="flex items-center space-x-1 overflow-x-auto pb-1 sm:pb-0">
+                <span class="text-[11px] font-bold text-slate-400 mr-1 whitespace-nowrap">Switch Grid Schedule:</span>
+                {% for g_val, g_label in grade_choices %}
+                <a href="?filter_type={{ filter_type }}&filter_id={{ filter_id }}&view_grade={{ g_val }}"
+                   class="px-2 py-1 rounded text-[11px] font-bold whitespace-nowrap transition {% if active_grade == g_val %}bg-deped-blue text-white shadow-sm{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                   {% if g_val == 0 %}Universal{% else %}Grade {{ g_val }}{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
         <div class="md:hidden pt-2 border-t border-slate-100 flex items-center space-x-1.5 overflow-x-auto pb-1">
             <button type="button" onclick="filterMobileDay('all')" class="day-pill active px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-deped-blue text-white" data-day="all">All Days</button>
             <button type="button" onclick="filterMobileDay(1)" class="day-pill px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-day="1">Mon</button>

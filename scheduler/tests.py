@@ -378,3 +378,145 @@ class ClassmateAITestSuite(TestCase):
         res_del = self.client.post(reverse('api_delete_cluster', args=[cluster_id]))
         self.assertTrue(res_del.json()['success'])
         self.assertFalse(CurriculumCluster.objects.filter(id=cluster_id).exists())
+
+    def test_copy_and_clear_grade_timeframes_api(self):
+        # 1. Apply preset to Grade 11
+        res_preset = self.client.post(reverse('api_apply_preset_timeframes'), {
+            'preset_type': 'shs_sample',
+            'grade_level': 11,
+        })
+        self.assertTrue(res_preset.json()['success'])
+        self.assertEqual(TimeSlot.objects.filter(grade_level=11).count(), 50)
+
+        # 2. Copy schedule from Grade 11 to Grade 12
+        res_copy = self.client.post(reverse('api_copy_grade_timeframes'), {
+            'source_grade': 11,
+            'target_grade': 12,
+        })
+        self.assertTrue(res_copy.json()['success'])
+        self.assertEqual(TimeSlot.objects.filter(grade_level=12).count(), 50)
+
+        # 3. Clear schedule for Grade 12
+        res_clear = self.client.post(reverse('api_clear_grade_timeframes'), {
+            'grade_level': 12,
+        })
+        self.assertTrue(res_clear.json()['success'])
+        self.assertEqual(TimeSlot.objects.filter(grade_level=12).count(), 0)
+        # Grade 11 remains intact
+        self.assertEqual(TimeSlot.objects.filter(grade_level=11).count(), 50)
+
+    def test_shs_immersion_90min_preset(self):
+        res = self.client.post(reverse('api_apply_preset_timeframes'), {
+            'preset_type': 'shs_immersion',
+            'grade_level': 12,
+        })
+        self.assertTrue(res.json()['success'])
+        slots = TimeSlot.objects.filter(grade_level=12)
+        # 8 periods x 5 days = 40 slots
+        self.assertEqual(slots.count(), 40)
+        p1 = TimeSlot.objects.filter(grade_level=12, period_number=1, day_of_week=1).first()
+        self.assertEqual(p1.duration_minutes, 30) # Flag ceremony
+        p2 = TimeSlot.objects.filter(grade_level=12, period_number=2, day_of_week=1).first()
+        self.assertEqual(p2.duration_minutes, 90) # 90m block
+
+    def test_facility_type_and_classroom_apis(self):
+        # Add facility type
+        res_ft = self.client.post(reverse('api_add_facility_type'), {
+            'name': 'Speech & Audio Lab',
+            'code': 'speech_audio_lab',
+            'description': 'Audio consoles for language proficiency'
+        })
+        data_ft = res_ft.json()
+        self.assertTrue(data_ft['success'])
+        ft_id = data_ft['id']
+
+        # Add room using this facility type
+        res_rm = self.client.post(reverse('api_add_room'), {
+            'name': 'Lab 301',
+            'room_type': 'speech_audio_lab',
+            'capacity': 40,
+            'building': 'East Wing'
+        })
+        data_rm = res_rm.json()
+        self.assertTrue(data_rm['success'])
+        room = Room.objects.get(id=data_rm['room_id'])
+        self.assertEqual(room.room_type_display_name, 'Speech & Audio Lab')
+
+        # Delete facility type
+        res_ft_del = self.client.post(reverse('api_delete_facility_type', args=[ft_id]))
+        self.assertTrue(res_ft_del.json()['success'])
+
+    def test_academic_year_and_term_management_apis(self):
+        # Add S.Y.
+        res_ay = self.client.post(reverse('api_add_academic_year'), {
+            'name': '2028-2029',
+            'set_active': 'true'
+        })
+        data_ay = res_ay.json()
+        self.assertTrue(data_ay['success'])
+        new_ay_id = data_ay['id']
+        self.assertTrue(AcademicYear.objects.get(id=new_ay_id).is_active)
+
+        # Add Term
+        res_term = self.client.post(reverse('api_add_term'), {
+            'academic_year_id': new_ay_id,
+            'name': '1st Trimester 2028',
+            'term_type': 'tri1',
+            'set_active': 'true'
+        })
+        data_term = res_term.json()
+        self.assertTrue(data_term['success'])
+        term_id = data_term['id']
+        self.assertTrue(Term.objects.get(id=term_id).is_active)
+
+        # Toggle back to original S.Y.
+        res_toggle = self.client.post(reverse('api_toggle_academic_year', args=[self.ay.id]))
+        self.assertTrue(res_toggle.json()['success'])
+        self.assertTrue(AcademicYear.objects.get(id=self.ay.id).is_active)
+        self.assertFalse(AcademicYear.objects.get(id=new_ay_id).is_active)
+
+    def test_ancillary_catalog_and_workload_policy_apis(self):
+        # Add catalog item
+        res_cat = self.client.post(reverse('api_add_ancillary_catalog'), {
+            'name': 'Disaster Risk Reduction Coordinator',
+            'code': 'drrm_coord',
+            'default_weekly_hours': 3.5,
+            'description': 'Campus safety and emergency readiness.'
+        })
+        data_cat = res_cat.json()
+        self.assertTrue(data_cat['success'])
+        cat_id = data_cat['id']
+
+        # Update workload policy caps
+        res_pol = self.client.post(reverse('api_update_workload_policy'), {
+            'max_daily_teaching_hours': 5,
+            'max_weekly_teaching_hours': 28,
+            'standard_workweek_hours': 40
+        })
+        self.assertTrue(res_pol.json()['success'])
+        prof = SchoolProfile.get_settings()
+        self.assertEqual(prof.max_daily_teaching_hours, 5)
+        self.assertEqual(prof.max_weekly_teaching_hours, 28)
+
+        # Delete catalog item
+        res_cat_del = self.client.post(reverse('api_delete_ancillary_catalog', args=[cat_id]))
+        self.assertTrue(res_cat_del.json()['success'])
+
+    def test_timetable_grade_adaptive_switching(self):
+        # Create G11 section
+        sec11 = Section.objects.create(name='Grade 11 - STEM Einstein', grade_level=11, academic_year=self.ay)
+        # Apply SHS schedule to Grade 11
+        self.client.post(reverse('api_apply_preset_timeframes'), {'preset_type': 'shs_sample', 'grade_level': 11})
+
+        # View Section 11 timetable
+        res11 = self.client.get(reverse('timetable') + f'?filter_type=section&filter_id={sec11.id}')
+        self.assertEqual(res11.status_code, 200)
+        self.assertEqual(res11.context['active_grade'], 11)
+        self.assertContains(res11, 'Grade 11 (SHS)')
+
+        # View Section 7 timetable (from setUp)
+        res7 = self.client.get(reverse('timetable') + f'?filter_type=section&filter_id={self.section.id}')
+        self.assertEqual(res7.status_code, 200)
+        self.assertEqual(res7.context['active_grade'], 7)
+        self.assertContains(res7, 'Grade 7 (JHS)')
+

@@ -34,6 +34,29 @@ class Department(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+class FacilityType(models.Model):
+    code = models.CharField(max_length=50, unique=True, help_text="e.g. lecture, science_lab, speech_lab, avr")
+    name = models.CharField(max_length=150, help_text="e.g. Standard Classroom, Science Laboratory")
+    description = models.CharField(max_length=255, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def get_all_choices(cls):
+        custom = list(cls.objects.filter(is_active=True).order_by('name'))
+        if not custom:
+            return [
+                ('lecture', 'Standard Classroom / Homeroom'),
+                ('science_lab', 'Science Laboratory'),
+                ('computer_lab', 'Computer / Mac Lab'),
+                ('tvl_workshop', 'TVL / TLE Workshop'),
+                ('gym', 'Gymnasium / Open Court'),
+            ]
+        return [(ft.code, ft.name) for ft in custom]
+
 class Room(models.Model):
     ROOM_TYPES = [
         ('lecture', 'Standard Classroom / Homeroom'),
@@ -43,13 +66,26 @@ class Room(models.Model):
         ('gym', 'Gymnasium / Open Court'),
     ]
     name = models.CharField(max_length=100, unique=True)
-    room_type = models.CharField(max_length=30, choices=ROOM_TYPES, default='lecture')
+    room_type = models.CharField(max_length=60, default='lecture')
     capacity = models.IntegerField(default=45)
     building = models.CharField(max_length=100, blank=True, default='')
     is_active = models.BooleanField(default=True)
 
+    @property
+    def room_type_display_name(self):
+        ft = FacilityType.objects.filter(code=self.room_type).first()
+        if ft:
+            return ft.name
+        dict_choices = dict(self.ROOM_TYPES)
+        if self.room_type in dict_choices:
+            return dict_choices[self.room_type]
+        return self.room_type.replace('_', ' ').title()
+
+    def get_room_type_display(self):
+        return self.room_type_display_name
+
     def __str__(self):
-        return f"{self.name} [{self.get_room_type_display()}]"
+        return f"{self.name} [{self.room_type_display_name}]"
 
 class CurriculumCluster(models.Model):
     LEVEL_CHOICES = [
@@ -106,10 +142,20 @@ class Subject(models.Model):
     grade_level = models.IntegerField(choices=GRADE_CHOICES)
     cluster = models.CharField(max_length=60, default='jhs_core')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
-    room_type_needed = models.CharField(max_length=30, choices=Room.ROOM_TYPES, default='lecture')
+    room_type_needed = models.CharField(max_length=60, default='lecture')
     weekly_periods = models.IntegerField(default=4, help_text="Number of 1-hour periods per week")
     consecutive_periods = models.IntegerField(default=1, help_text="1 for standard, 2 for double-period lab/workshop")
     is_lab = models.BooleanField(default=False)
+
+    @property
+    def room_type_display_name(self):
+        ft = FacilityType.objects.filter(code=self.room_type_needed).first()
+        if ft:
+            return ft.name
+        dict_choices = dict(Room.ROOM_TYPES)
+        if self.room_type_needed in dict_choices:
+            return dict_choices[self.room_type_needed]
+        return self.room_type_needed.replace('_', ' ').title()
 
     @property
     def cluster_display_name(self):
@@ -120,6 +166,12 @@ class Subject(models.Model):
         if self.cluster in dict_choices:
             return dict_choices[self.cluster]
         return self.cluster.replace('_', ' ').upper()
+
+    def get_room_type_needed_display(self):
+        return self.room_type_display_name
+
+    def get_cluster_display(self):
+        return self.cluster_display_name
 
     def __str__(self):
         return f"{self.code} - {self.title} (G{self.grade_level})"
@@ -179,8 +231,30 @@ class Section(models.Model):
             return dict_choices[self.cluster]
         return self.cluster.replace('_', ' ').upper()
 
+    def get_cluster_display(self):
+        return self.cluster_display_name
+
     def __str__(self):
         return f"{self.name} (G{self.grade_level})"
+
+class AncillaryDesignationCatalog(models.Model):
+    code = models.CharField(max_length=50, unique=True, help_text="e.g. ict_coordinator, property_custodian")
+    name = models.CharField(max_length=150, help_text="e.g. School ICT / LIS Coordinator")
+    default_weekly_hours = models.FloatField(default=2.0)
+    description = models.CharField(max_length=255, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.default_weekly_hours}h/wk)"
+
+    @classmethod
+    def get_all_choices(cls):
+        custom = list(cls.objects.filter(is_active=True).order_by('name'))
+        if not custom:
+            return AncillaryDuty.COMMON_DESIGNATIONS
+        return [(d.code, f"{d.name} ({d.default_weekly_hours}h/wk)") for d in custom]
+
 
 class AncillaryDuty(models.Model):
     COMMON_DESIGNATIONS = [
@@ -238,6 +312,13 @@ class TimeSlot(models.Model):
         end_m = self.end_time.hour * 60 + self.end_time.minute
         return max(0, end_m - start_m)
 
+    @classmethod
+    def get_periods_for_grade(cls, grade_level, day=1):
+        slots = cls.objects.filter(day_of_week=day, grade_level=grade_level).order_by('period_number')
+        if not slots.exists():
+            slots = cls.objects.filter(day_of_week=day, grade_level=0).order_by('period_number')
+        return slots
+
     class Meta:
         unique_together = ('day_of_week', 'period_number', 'grade_level')
         ordering = ['grade_level', 'day_of_week', 'period_number']
@@ -270,6 +351,15 @@ class SchoolProfile(models.Model):
     approved_by_name = models.CharField(max_length=150, default="RACHEL R. LLANA, PhD, CESO V")
     approved_by_title = models.CharField(max_length=150, default="Schools Division Superintendent")
 
+    # Academic cycle configuration
+    active_academic_year = models.ForeignKey('AcademicYear', on_delete=models.SET_NULL, null=True, blank=True)
+    active_term = models.ForeignKey('Term', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Workload Policy Limits (DepEd DO 005 s. 2024 / RA 4670)
+    max_daily_teaching_hours = models.IntegerField(default=6, help_text="Max actual classroom teaching hours per day")
+    max_weekly_teaching_hours = models.IntegerField(default=30, help_text="Max actual classroom teaching hours per week")
+    standard_workweek_hours = models.IntegerField(default=40, help_text="Total official weekly work hours")
+
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -277,7 +367,13 @@ class SchoolProfile(models.Model):
 
     @classmethod
     def get_settings(cls):
-        profile, _ = cls.objects.get_or_create(id=1)
+        profile, created = cls.objects.get_or_create(id=1)
+        if not profile.active_academic_year:
+            profile.active_academic_year = AcademicYear.objects.filter(is_active=True).first() or AcademicYear.objects.first()
+        if not profile.active_term:
+            profile.active_term = Term.objects.filter(is_active=True).first() or Term.objects.first()
+        if created:
+            profile.save()
         return profile
 
 class SectionSubjectRequirement(models.Model):
