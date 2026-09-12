@@ -120,6 +120,7 @@ class Section(models.Model):
     grade_level = models.IntegerField(choices=Subject.GRADE_CHOICES)
     cluster = models.CharField(max_length=30, choices=Subject.CLUSTER_CHOICES, default='jhs_core')
     homeroom = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name='homeroom_sections')
+    adviser = models.ForeignKey('Teacher', on_delete=models.SET_NULL, null=True, blank=True, related_name='advised_sections')
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='sections')
 
     class Meta:
@@ -127,6 +128,31 @@ class Section(models.Model):
 
     def __str__(self):
         return f"{self.name} (G{self.grade_level})"
+
+class AncillaryDuty(models.Model):
+    COMMON_DESIGNATIONS = [
+        ('adviser', 'Class Advisory (Adviser)'),
+        ('ict_coordinator', 'School ICT / LIS Coordinator'),
+        ('drrm_coordinator', 'Disaster Risk Reduction (DRRM) Coordinator'),
+        ('school_paper', 'School Paper / Campus Journalism Adviser'),
+        ('scout_coordinator', 'BSP / GSP Scout Coordinator'),
+        ('dept_coordinator', 'Department / Grade Level Coordinator'),
+        ('guidance_designate', 'Guidance Counselor Designate'),
+        ('canteen_manager', 'Canteen / Feeding Program Manager'),
+        ('property_custodian', 'Property Custodian / Supply Designate'),
+        ('sports_coach', 'Sports / Athletic Club Coach'),
+        ('reading_coordinator', 'Reading / Remediation Coordinator'),
+        ('custom', 'Other Special Designation'),
+    ]
+    teacher = models.ForeignKey('Teacher', on_delete=models.CASCADE, related_name='ancillary_duties')
+    title = models.CharField(max_length=150, help_text="Designation or Ancillary Title")
+    designation_type = models.CharField(max_length=50, choices=COMMON_DESIGNATIONS, default='custom')
+    weekly_hours = models.FloatField(default=2.0, help_text="Credited hours/week under DepEd DO 005 s. 2024")
+    description = models.CharField(max_length=255, blank=True, default='')
+
+    def __str__(self):
+        return f"{self.teacher.full_name} - {self.title} ({self.weekly_hours}h/wk)"
+
 
 class TimeSlot(models.Model):
     DAY_CHOICES = [

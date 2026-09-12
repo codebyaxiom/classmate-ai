@@ -1,0 +1,624 @@
+{% extends 'base.html' %}
+
+{% block title %}Sections & Advisory Desk | CLASSMATE-AI{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-deped-blue/10 text-deped-darkblue border border-deped-blue/20">DepEd Classroom Organization</span>
+                <span class="text-xs text-slate-500 font-semibold">{{ sections|length }} Active Sections</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 mt-1 flex items-center space-x-2">
+                <i class="fa-solid fa-people-roof text-deped-blue"></i>
+                <span>Sections & Advisory Desk</span>
+            </h1>
+            <p class="text-xs text-slate-500">
+                Establish grade sections, assign class advisers, and designate faculty teachers for every curriculum subject.
+            </p>
+        </div>
+
+        <div class="flex items-center space-x-2 self-start sm:self-auto">
+            <button onclick="openAddSectionModal()" class="px-4 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-md shadow-blue-500/20 transition active:scale-95 flex items-center space-x-2">
+                <i class="fa-solid fa-plus text-deped-gold"></i>
+                <span>+ Establish New Section</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+        <form method="GET" action="{% url 'sections' %}" class="flex-1 w-full flex flex-col sm:flex-row items-center gap-3">
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Search by section name..." class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="w-full sm:w-44">
+                <select name="grade" onchange="this.form.submit()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none focus:ring-2 focus:ring-deped-blue">
+                    <option value="">All Grade Levels</option>
+                    <option value="7" {% if grade_filter == '7' %}selected{% endif %}>Grade 7 (JHS)</option>
+                    <option value="8" {% if grade_filter == '8' %}selected{% endif %}>Grade 8 (JHS)</option>
+                    <option value="9" {% if grade_filter == '9' %}selected{% endif %}>Grade 9 (JHS)</option>
+                    <option value="10" {% if grade_filter == '10' %}selected{% endif %}>Grade 10 (JHS)</option>
+                    <option value="11" {% if grade_filter == '11' %}selected{% endif %}>Grade 11 (SSHS)</option>
+                    <option value="12" {% if grade_filter == '12' %}selected{% endif %}>Grade 12 (SSHS)</option>
+                </select>
+            </div>
+
+            <div class="w-full sm:w-56">
+                <select name="cluster" onchange="this.form.submit()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none focus:ring-2 focus:ring-deped-blue">
+                    <option value="">All Clusters</option>
+                    {% for c_val, c_name in clusters %}
+                    <option value="{{ c_val }}" {% if cluster_filter == c_val %}selected{% endif %}>{{ c_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                Filter
+            </button>
+            {% if grade_filter or cluster_filter or search_query %}
+            <a href="{% url 'sections' %}" class="w-full sm:w-auto px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold transition text-center">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Sections Grid -->
+    {% if sections %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {% for sec in sections %}
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition p-5 flex flex-col justify-between" id="section-card-{{ sec.id }}">
+            <div class="space-y-4">
+                <!-- Top Row: Section Title & Badges -->
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h2 class="font-heading font-extrabold text-lg text-slate-900">{{ sec.name }}</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-deped-blue/10 text-deped-blue">
+                                Grade {{ sec.grade_level }}
+                            </span>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-500 block mt-0.5">
+                            {{ sec.get_cluster_display }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center space-x-1.5">
+                        <button onclick="openEditSectionModal({{ sec.id }}, '{{ sec.name|escapejs }}', '{{ sec.homeroom.id|default:'' }}', '{{ sec.adviser.id|default:'' }}')" class="p-2 text-slate-400 hover:text-deped-blue hover:bg-blue-50 rounded-xl transition" title="Edit Section & Teachers">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteSection({{ sec.id }}, '{{ sec.name|escapejs }}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition" title="Delete Section">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info Badges (Homeroom & Class Adviser) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-door-open text-deped-blue"></i>
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Homeroom</span>
+                            <span class="font-bold text-slate-700">{% if sec.homeroom %}{{ sec.homeroom.name }}{% else %}<span class="text-amber-600 italic">No room assigned</span>{% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-user-tie text-emerald-600"></i>
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Class Adviser</span>
+                            <span class="font-bold text-slate-700">{% if sec.adviser %}{{ sec.adviser.full_name }}{% else %}<span class="text-slate-400 italic">Unassigned</span>{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subject & Teacher Assignments List -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+                            Curriculum Subjects & Assigned Teachers ({{ sec.total_subjects_count }})
+                        </span>
+                        <span class="text-[11px] font-bold text-deped-blue">
+                            {{ sec.total_weekly_hours }} hrs/wk
+                        </span>
+                    </div>
+
+                    <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                        {% for req in sec.subject_requirements.all %}
+                        <div class="p-2.5 flex items-center justify-between text-xs hover:bg-white transition">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="font-bold text-slate-900">{{ req.subject.title }}</span>
+                                    <span class="font-mono text-[10px] text-slate-400 font-bold">({{ req.subject.code }})</span>
+                                </div>
+                                <span class="text-[10px] text-slate-500">
+                                    {{ req.subject.weekly_periods }} hrs/wk &bull; {{ req.subject.get_room_type_needed_display }}
+                                </span>
+                            </div>
+
+                            <div class="text-right">
+                                {% if req.assigned_teacher %}
+                                <div class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                                    <i class="fa-solid fa-chalkboard-user text-[10px]"></i>
+                                    <span>{{ req.assigned_teacher.full_name }}</span>
+                                </div>
+                                {% else %}
+                                <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold">
+                                    <i class="fa-solid fa-robot text-[10px]"></i>
+                                    <span>AI Auto-Assign</span>
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="p-4 text-center text-xs text-slate-400">
+                            No subjects assigned to this section yet. Tap "Assign Faculty" below to establish subjects.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Action Button -->
+            <div class="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between">
+                <span class="text-[11px] text-slate-500 font-semibold">
+                    <i class="fa-solid fa-check-circle text-emerald-500 mr-1"></i>
+                    {{ sec.assigned_faculty_count }} of {{ sec.total_subjects_count }} Faculty Established
+                </span>
+                <button onclick="openEditSectionModal({{ sec.id }}, '{{ sec.name|escapejs }}', '{{ sec.homeroom.id|default:'' }}', '{{ sec.adviser.id|default:'' }}')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 font-bold text-xs transition active:scale-95">
+                    Assign Faculty &rarr;
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm space-y-3">
+        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-deped-blue flex items-center justify-center mx-auto text-2xl">
+            <i class="fa-solid fa-people-roof"></i>
+        </div>
+        <h3 class="font-heading font-bold text-lg text-slate-800">No Sections Found</h3>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+            Create classroom sections to establish grade levels, homerooms, and assign teachers to handle each subject.
+        </p>
+        <button onclick="openAddSectionModal()" class="px-4 py-2 rounded-xl bg-deped-blue text-white font-bold text-xs hover:bg-deped-darkblue transition">
+            + Establish First Section
+        </button>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Modal: Establish New Section -->
+<div id="addSectionModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col">
+        <div class="bg-gradient-to-r from-deped-darkblue to-deped-blue p-4 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-people-roof text-deped-gold text-lg"></i>
+                <div>
+                    <h3 class="font-heading font-bold text-base">Establish New Section</h3>
+                    <p class="text-[11px] text-blue-200">Configure grade section, homeroom & teacher assignments</p>
+                </div>
+            </div>
+            <button onclick="closeAddSectionModal()" class="text-white/70 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="addSectionForm" onsubmit="submitAddSection(event)" class="p-5 space-y-4 text-xs overflow-y-auto flex-1">
+            <!-- Section Info Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Section Name *</label>
+                    <input type="text" id="secName" required placeholder="e.g. Grade 7 - Bonifacio, Grade 11 - STEM Tesla" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Grade Level *</label>
+                    <select id="secGrade" onchange="onGradeOrClusterChange()" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="7">Grade 7 (JHS)</option>
+                        <option value="8">Grade 8 (JHS)</option>
+                        <option value="9">Grade 9 (JHS)</option>
+                        <option value="10">Grade 10 (JHS)</option>
+                        <option value="11">Grade 11 (SSHS)</option>
+                        <option value="12">Grade 12 (SSHS)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Curriculum Cluster *</label>
+                    <select id="secCluster" onchange="onGradeOrClusterChange()" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        {% for c_val, c_name in clusters %}
+                        <option value="{{ c_val }}">{{ c_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Homeroom Classroom</label>
+                    <select id="secHomeroom" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="">-- Select Homeroom --</option>
+                        {% for r in rooms %}
+                        <option value="{{ r.id }}">{{ r.name }} ({{ r.capacity }} cap)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Class Adviser</label>
+                    <select id="secAdviser" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="">-- Select Class Adviser --</option>
+                        {% for t in teachers %}
+                        <option value="{{ t.id }}">{{ t.full_name }} ({{ t.department.code|default:t.get_curriculum_level_display }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Subject & Faculty Assignment Table -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden mt-4">
+                <div class="bg-slate-100 p-3 flex items-center justify-between border-b border-slate-200">
+                    <div>
+                        <span class="font-bold text-slate-800 text-xs block">Prescribed Curriculum Subjects & Assigned Teachers</span>
+                        <span class="text-[10px] text-slate-500">Pick which faculty teacher handles each subject for this section</span>
+                    </div>
+                    <span id="subjectCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-deped-blue text-white">0 Subjects</span>
+                </div>
+
+                <div class="max-h-60 overflow-y-auto divide-y divide-slate-100 bg-white" id="subjectAssignmentList">
+                    <div class="p-6 text-center text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-lg mb-1"></i>
+                        <p class="text-xs">Loading curriculum subjects for grade level...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
+                <button type="button" onclick="closeAddSectionModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" id="saveSectionBtn" class="w-1/2 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold shadow transition flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-check text-xs text-deped-gold"></i>
+                    <span>Establish Section</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Section & Assign Faculty -->
+<div id="editSectionModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-gradient-to-r from-slate-900 to-deped-blue p-4 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-chalkboard-user text-deped-gold text-lg"></i>
+                <div>
+                    <h3 class="font-heading font-bold text-base" id="editModalTitle">Assign Faculty Loads</h3>
+                    <p class="text-[11px] text-blue-200">Reassign or configure teachers for this section</p>
+                </div>
+            </div>
+            <button onclick="closeEditSectionModal()" class="text-white/70 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="editSectionForm" onsubmit="submitEditSection(event)" class="p-5 space-y-4 text-xs overflow-y-auto flex-1">
+            <input type="hidden" id="editSecId">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Section Name</label>
+                    <input type="text" id="editSecName" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Homeroom Classroom</label>
+                    <select id="editSecHomeroom" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="">-- None --</option>
+                        {% for r in rooms %}
+                        <option value="{{ r.id }}">{{ r.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Class Adviser</label>
+                <select id="editSecAdviser" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    <option value="">-- None --</option>
+                    {% for t in teachers %}
+                    <option value="{{ t.id }}">{{ t.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <div class="bg-slate-100 p-3 text-xs font-bold text-slate-800">
+                    Subject Teaching Assignments
+                </div>
+                <div class="max-h-56 overflow-y-auto divide-y divide-slate-100" id="editAssignmentsContainer">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
+                <button type="button" onclick="closeEditSectionModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-deped-blue text-white font-bold shadow transition">Save Assignments</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // All available faculty list for dynamic building
+    const ALL_TEACHERS = [
+        {% for t in teachers %}
+        { id: {{ t.id }}, name: "{{ t.full_name|escapejs }}", dept: "{{ t.department.code|default:'' }}" },
+        {% endfor %}
+    ];
+
+    // Pre-loaded sections data for editing
+    const SECTIONS_DATA = {
+        {% for sec in sections %}
+        {{ sec.id }}: {
+            id: {{ sec.id }},
+            name: "{{ sec.name|escapejs }}",
+            homeroom_id: "{{ sec.homeroom.id|default:'' }}",
+            adviser_id: "{{ sec.adviser.id|default:'' }}",
+            requirements: [
+                {% for req in sec.subject_requirements.all %}
+                {
+                    subject_id: {{ req.subject.id }},
+                    code: "{{ req.subject.code|escapejs }}",
+                    title: "{{ req.subject.title|escapejs }}",
+                    weekly: {{ req.subject.weekly_periods }},
+                    assigned_teacher_id: "{{ req.assigned_teacher.id|default:'' }}",
+                    room_id: "{{ req.preferred_room.id|default:'' }}"
+                },
+                {% endfor %}
+            ]
+        },
+        {% endfor %}
+    };
+
+    function openAddSectionModal() {
+        const modal = document.getElementById('addSectionModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        onGradeOrClusterChange();
+    }
+
+    function closeAddSectionModal() {
+        const modal = document.getElementById('addSectionModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function onGradeOrClusterChange() {
+        const grade = document.getElementById('secGrade').value;
+        const cluster = document.getElementById('secCluster').value;
+        const container = document.getElementById('subjectAssignmentList');
+        const countBadge = document.getElementById('subjectCountBadge');
+
+        container.innerHTML = `
+            <div class="p-6 text-center text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin text-lg mb-1"></i>
+                <p class="text-xs">Fetching prescribed curriculum subjects...</p>
+            </div>
+        `;
+
+        try {
+            const res = await fetch(`/api/curriculum/subjects-by-grade/?grade_level=${grade}&cluster=${cluster}`);
+            const data = await res.json();
+            if (data.success && data.subjects.length > 0) {
+                countBadge.textContent = `${data.subjects.length} Subjects`;
+                let html = '';
+                data.subjects.forEach(s => {
+                    let teacherOptions = '<option value="">-- AI Auto-Assign --</option>';
+                    // Priority qualified teachers
+                    const qualifiedIds = new Set(s.qualified_teachers.map(qt => qt.id));
+                    
+                    if (s.qualified_teachers.length > 0) {
+                        teacherOptions += `<optgroup label="Qualified Subject Teachers">`;
+                        s.qualified_teachers.forEach(qt => {
+                            teacherOptions += `<option value="${qt.id}">${qt.name} &#9733;</option>`;
+                        });
+                        teacherOptions += `</optgroup>`;
+                    }
+
+                    // Other faculty
+                    teacherOptions += `<optgroup label="Other Teaching Faculty">`;
+                    ALL_TEACHERS.forEach(t => {
+                        if (!qualifiedIds.has(t.id)) {
+                            teacherOptions += `<option value="${t.id}">${t.name} (${t.dept || 'Gen'})</option>`;
+                        }
+                    });
+                    teacherOptions += `</optgroup>`;
+
+                    html += `
+                        <div class="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs" data-subj-id="${s.id}">
+                            <div class="w-full sm:w-1/2">
+                                <span class="font-bold text-slate-900 block">${s.title}</span>
+                                <span class="text-[11px] text-slate-400 font-mono font-semibold">${s.code} &bull; ${s.weekly_periods} hrs/wk &bull; ${s.room_type_label}</span>
+                            </div>
+                            <div class="w-full sm:w-1/2">
+                                <label class="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">Assigned Teacher:</label>
+                                <select class="subj-teacher-select w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-semibold bg-white outline-none focus:ring-2 focus:ring-deped-blue">
+                                    ${teacherOptions}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                countBadge.textContent = '0 Subjects';
+                container.innerHTML = `
+                    <div class="p-6 text-center text-slate-400 text-xs">
+                        No prescribed subjects found for Grade ${grade}. You can add subjects from the Subjects Hub.
+                    </div>
+                `;
+            }
+        } catch (err) {
+            container.innerHTML = `<div class="p-4 text-center text-red-500 text-xs">Error loading curriculum subjects.</div>`;
+        }
+    }
+
+    async function submitAddSection(e) {
+        e.preventDefault();
+        const name = document.getElementById('secName').value.trim();
+        const grade = document.getElementById('secGrade').value;
+        const cluster = document.getElementById('secCluster').value;
+        const homeroom = document.getElementById('secHomeroom').value;
+        const adviser = document.getElementById('secAdviser').value;
+
+        // Gather assignments
+        const assignments = [];
+        const rows = document.querySelectorAll('#subjectAssignmentList > div[data-subj-id]');
+        rows.forEach(r => {
+            const subjId = parseInt(r.getAttribute('data-subj-id'));
+            const teacherSelect = r.querySelector('.subj-teacher-select');
+            const teacherId = teacherSelect ? teacherSelect.value : null;
+            assignments.push({
+                subject_id: subjId,
+                teacher_id: teacherId ? parseInt(teacherId) : null
+            });
+        });
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('grade_level', grade);
+        formData.append('cluster', cluster);
+        if (homeroom) formData.append('homeroom_id', homeroom);
+        if (adviser) formData.append('adviser_id', adviser);
+        formData.append('assignments', JSON.stringify(assignments));
+
+        try {
+            const res = await fetch("{% url 'api_add_section' %}", {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                closeAddSectionModal();
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                showToast(data.message || 'Failed to create section', true);
+            }
+        } catch (err) {
+            showToast('Network error while establishing section', true);
+        }
+    }
+
+    function openEditSectionModal(secId, name, homeroomId, adviserId) {
+        const sec = SECTIONS_DATA[secId];
+        if (!sec) return;
+
+        document.getElementById('editSecId').value = secId;
+        document.getElementById('editSecName').value = sec.name;
+        document.getElementById('editSecHomeroom').value = sec.homeroom_id || '';
+        document.getElementById('editSecAdviser').value = sec.adviser_id || '';
+        document.getElementById('editModalTitle').textContent = `Faculty Loads: ${sec.name}`;
+
+        const container = document.getElementById('editAssignmentsContainer');
+        let html = '';
+        sec.requirements.forEach(req => {
+            let teacherOptions = '<option value="">-- AI Auto-Assign --</option>';
+            ALL_TEACHERS.forEach(t => {
+                const isSelected = String(t.id) === String(req.assigned_teacher_id);
+                teacherOptions += `<option value="${t.id}" ${isSelected ? 'selected' : ''}>${t.name}</option>`;
+            });
+
+            html += `
+                <div class="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs edit-req-row" data-subj-id="${req.subject_id}">
+                    <div class="w-full sm:w-1/2">
+                        <span class="font-bold text-slate-800 block">${req.title}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">${req.code} &bull; ${req.weekly} hrs/wk</span>
+                    </div>
+                    <div class="w-full sm:w-1/2">
+                        <select class="edit-teacher-select w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-semibold bg-white outline-none focus:ring-2 focus:ring-deped-blue">
+                            ${teacherOptions}
+                        </select>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html || '<div class="p-4 text-center text-slate-400 text-xs">No subjects attached to this section.</div>';
+
+        const modal = document.getElementById('editSectionModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeEditSectionModal() {
+        const modal = document.getElementById('editSectionModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function submitEditSection(e) {
+        e.preventDefault();
+        const secId = document.getElementById('editSecId').value;
+        const name = document.getElementById('editSecName').value.trim();
+        const homeroom = document.getElementById('editSecHomeroom').value;
+        const adviser = document.getElementById('editSecAdviser').value;
+
+        const assignments = [];
+        const rows = document.querySelectorAll('.edit-req-row');
+        rows.forEach(r => {
+            const subjId = parseInt(r.getAttribute('data-subj-id'));
+            const teacherSelect = r.querySelector('.edit-teacher-select');
+            const teacherId = teacherSelect ? teacherSelect.value : null;
+            assignments.push({
+                subject_id: subjId,
+                teacher_id: teacherId ? parseInt(teacherId) : null
+            });
+        });
+
+        const formData = new FormData();
+        formData.append('name', name);
+        if (homeroom) formData.append('homeroom_id', homeroom);
+        formData.append('adviser_id', adviser);
+        formData.append('assignments', JSON.stringify(assignments));
+
+        try {
+            const res = await fetch(`/api/sections/${secId}/update/`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                closeEditSectionModal();
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                showToast(data.message || 'Update failed', true);
+            }
+        } catch (err) {
+            showToast('Network error while updating section', true);
+        }
+    }
+
+    async function deleteSection(secId, name) {
+        if (!confirm(`Are you sure you want to delete section "${name}" and all its subject requirements?`)) return;
+
+        try {
+            const res = await fetch(`/api/sections/${secId}/delete/`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                const card = document.getElementById(`section-card-${secId}`);
+                if (card) card.remove();
+            } else {
+                showToast(data.message || 'Failed to delete section', true);
+            }
+        } catch (err) {
+            showToast('Network error', true);
+        }
+    }
+</script>
+{% endblock %}

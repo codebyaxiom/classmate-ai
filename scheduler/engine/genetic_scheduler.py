@@ -1,4 +1,4 @@
-﻿import random
+import random
 import copy
 from collections import defaultdict
 from scheduler.models import (
@@ -61,7 +61,10 @@ class GeneticTimetableScheduler:
 
         # Requirements grouped by section
         self.section_requirements = defaultdict(list)
+        self.locked_assigned_teachers = {}
         for req in SectionSubjectRequirement.objects.filter(section__in=self.sections).select_related('section', 'subject'):
+            if req.assigned_teacher_id:
+                self.locked_assigned_teachers[(req.section_id, req.subject_id)] = req.assigned_teacher_id
             for _ in range(req.subject.weekly_periods):
                 self.section_requirements[req.section_id].append({
                     'section_id': req.section_id,
@@ -252,7 +255,10 @@ class GeneticTimetableScheduler:
                     target_gene = random.choice(sec_genes)
                     if not target_gene.is_locked:
                         if random.random() < 0.5:
-                            target_gene.teacher_id = self._get_valid_teacher(target_gene.subject_id)
+                            # Only mutate teacher if not explicitly assigned by administrator
+                            assigned_t = self.locked_assigned_teachers.get((target_gene.section_id, target_gene.subject_id))
+                            if not assigned_t:
+                                target_gene.teacher_id = self._get_valid_teacher(target_gene.subject_id)
                         else:
                             target_gene.room_id = self._get_valid_room(target_gene.subject_id)
 

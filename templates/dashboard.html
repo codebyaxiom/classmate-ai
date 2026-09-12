@@ -25,7 +25,15 @@
                 </button>
                 <a href="{% url 'teachers' %}" class="px-5 py-2.5 rounded-xl bg-white text-deped-darkblue font-extrabold text-sm shadow-md transition active:scale-95 flex items-center space-x-2 hover:bg-slate-100">
                     <i class="fa-solid fa-user-plus text-deped-blue"></i>
-                    <span>Faculty Desk (+ Add Teacher)</span>
+                    <span>Faculty Desk (+ Add)</span>
+                </a>
+                <a href="{% url 'sections' %}" class="px-5 py-2.5 rounded-xl bg-deped-gold text-slate-900 font-extrabold text-sm shadow-md transition active:scale-95 flex items-center space-x-2 hover:bg-yellow-400">
+                    <i class="fa-solid fa-people-roof text-deped-darkblue"></i>
+                    <span>Sections Desk (+ Add)</span>
+                </a>
+                <a href="{% url 'subjects' %}" class="px-5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-sm backdrop-blur transition flex items-center space-x-2 border border-white/25 active:scale-95">
+                    <i class="fa-solid fa-book-open-reader text-deped-gold"></i>
+                    <span>Subjects Hub (+ Add)</span>
                 </a>
                 <a href="{% url 'timetable' %}" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm backdrop-blur transition flex items-center space-x-2 border border-white/20">
                     <i class="fa-solid fa-calendar-week"></i>
@@ -97,19 +105,19 @@
         </a>
 
         <!-- Metric 4: Sections & Classrooms -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+        <a href="{% url 'sections' %}" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:border-deped-blue transition block group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Classes & Rooms</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold">
-                    <i class="fa-solid fa-school"></i>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-deped-blue transition">Sections & Advisory</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold group-hover:bg-deped-blue group-hover:text-white transition">
+                    <i class="fa-solid fa-people-roof"></i>
                 </div>
             </div>
             <div class="mt-3">
                 <span class="text-3xl font-extrabold font-heading text-slate-800">{{ total_sections }}</span>
                 <span class="text-xs text-purple-700 bg-purple-100/60 font-semibold px-2 py-0.5 rounded-md ml-1.5">{{ total_rooms }} Rooms</span>
             </div>
-            <p class="text-[11px] text-slate-500 mt-1">{{ jhs_sections }} JHS + {{ shs_sections }} SSHS Sections</p>
-        </div>
+            <p class="text-[11px] text-slate-500 mt-1">{{ jhs_sections }} JHS + {{ shs_sections }} SSHS Sections &rarr;</p>
+        </a>
     </div>
 
     <!-- Curriculum Alignment Feature Card -->
@@ -148,22 +156,30 @@
             </div>
 
             <!-- Quick Access Navigation Buttons -->
-            <div class="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <a href="{% url 'teachers' %}" class="py-3 px-3 rounded-xl bg-blue-50 hover:bg-deped-blue hover:text-white text-deped-darkblue text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-blue-100 group shadow-sm">
+            <div class="pt-2 grid grid-cols-2 sm:grid-cols-6 gap-2">
+                <a href="{% url 'teachers' %}" class="py-3 px-2 rounded-xl bg-blue-50 hover:bg-deped-blue hover:text-white text-deped-darkblue text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-blue-100 group shadow-sm">
                     <i class="fa-solid fa-chalkboard-user text-base text-deped-blue group-hover:text-deped-gold transition"></i>
-                    <span>Faculty Desk (+ Add)</span>
+                    <span>Faculty</span>
                 </a>
-                <a href="{% url 'timetable' %}" class="py-3 px-3 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
+                <a href="{% url 'sections' %}" class="py-3 px-2 rounded-xl bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-900 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-amber-100 group shadow-sm">
+                    <i class="fa-solid fa-people-roof text-base text-amber-600 group-hover:text-white transition"></i>
+                    <span>Sections</span>
+                </a>
+                <a href="{% url 'subjects' %}" class="py-3 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-emerald-100 group shadow-sm">
+                    <i class="fa-solid fa-book-open-reader text-base text-emerald-600 group-hover:text-white transition"></i>
+                    <span>Subjects</span>
+                </a>
+                <a href="{% url 'timetable' %}" class="py-3 px-2 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
                     <i class="fa-solid fa-table-cells text-base text-slate-400 group-hover:text-deped-gold transition"></i>
-                    <span>Timetable Studio</span>
+                    <span>Timetable</span>
                 </a>
-                <a href="{% url 'teacher_loads' %}" class="py-3 px-3 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
+                <a href="{% url 'teacher_loads' %}" class="py-3 px-2 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
                     <i class="fa-solid fa-id-card-clip text-base text-slate-400 group-hover:text-deped-gold transition"></i>
-                    <span>SF7 Faculty Loads</span>
+                    <span>SF7 Loads</span>
                 </a>
-                <a href="{% url 'room_utilization' %}" class="py-3 px-3 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
-                    <i class="fa-solid fa-flask-vial text-base text-slate-400 group-hover:text-deped-gold transition"></i>
-                    <span>Room Utilization</span>
+                <a href="{% url 'room_utilization' %}" class="py-3 px-2 rounded-xl bg-slate-100 hover:bg-deped-blue hover:text-white text-slate-700 text-xs font-bold transition text-center flex flex-col items-center justify-center space-y-1 border border-slate-200 group">
+                    <i class="fa-solid fa-door-open text-base text-slate-400 group-hover:text-deped-gold transition"></i>
+                    <span>Rooms</span>
                 </a>
             </div>
         </div>

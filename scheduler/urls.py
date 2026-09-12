@@ -14,6 +14,19 @@ urlpatterns = [
     path('teachers/', views.teachers_view, name='teachers'),
     path('api/teachers/add/', views.add_teacher_api, name='api_add_teacher'),
     path('api/teachers/delete/<int:teacher_id>/', views.delete_teacher_api, name='api_delete_teacher'),
+    path('api/ancillary/add/', views.add_ancillary_duty_api, name='api_add_ancillary_duty'),
+    path('api/ancillary/delete/<int:duty_id>/', views.delete_ancillary_duty_api, name='api_delete_ancillary_duty'),
+    
+    path('sections/', views.sections_view, name='sections'),
+    path('api/sections/add/', views.add_section_api, name='api_add_section'),
+    path('api/sections/<int:section_id>/update/', views.update_section_assignments_api, name='api_update_section_assignments'),
+    path('api/sections/<int:section_id>/delete/', views.delete_section_api, name='api_delete_section'),
+    path('api/curriculum/subjects-by-grade/', views.get_subjects_by_grade_api, name='api_subjects_by_grade'),
+    
+    path('subjects/', views.subjects_view, name='subjects'),
+    path('api/subjects/add/', views.add_subject_api, name='api_add_subject'),
+    path('api/subjects/delete/<int:subject_id>/', views.delete_subject_api, name='api_delete_subject'),
+    path('api/timeslots/add/', views.add_timeslot_api, name='api_add_timeslot'),
     
     # API endpoints
     path('api/run-ga/', views.run_genetic_algorithm, name='api_run_ga'),

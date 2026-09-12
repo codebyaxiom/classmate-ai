@@ -1,5 +1,7 @@
 import csv
 import io
+import json
+from collections import defaultdict
 from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
@@ -11,7 +13,8 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 from .models import (
     AcademicYear, Term, Department, Room, Subject, Teacher, TeacherQualification,
-    Section, TimeSlot, SectionSubjectRequirement, Schedule, ScheduleItem, AuditLog
+    Section, TimeSlot, SectionSubjectRequirement, Schedule, ScheduleItem, AuditLog,
+    AncillaryDuty
 )
 from .engine.genetic_scheduler import GeneticTimetableScheduler
 
@@ -417,20 +420,29 @@ def print_sf7_view(request, teacher_id=None):
     schedule = Schedule.objects.order_by('-updated_at').first()
     teacher = None
     items = []
+    ancillary_duties = []
+    ancillary_hours = 0.0
     if teacher_id:
         teacher = get_object_or_404(Teacher, id=teacher_id)
         if schedule:
             items = ScheduleItem.objects.filter(schedule=schedule, teacher=teacher).select_related('subject', 'section', 'room', 'time_slot').order_by('time_slot__day_of_week', 'time_slot__period_number')
+        ancillary_duties = list(teacher.ancillary_duties.all())
+        ancillary_hours = sum(d.weekly_hours for d in ancillary_duties)
     
     # Calculate weekly hours
-    total_hours = len(items)
-    prep_hours = max(0, 40 - total_hours) if total_hours > 0 else 0
+    teaching_hours = len(items)
+    total_workload = teaching_hours + ancillary_hours
+    prep_hours = max(0.0, 40.0 - total_workload) if total_workload > 0 else 0.0
 
     context = {
         'schedule': schedule,
         'teacher': teacher,
         'items': items,
-        'total_hours': total_hours,
+        'teaching_hours': teaching_hours,
+        'total_hours': teaching_hours, # for backwards compatibility with existing template
+        'ancillary_duties': ancillary_duties,
+        'ancillary_hours': ancillary_hours,
+        'total_workload': total_workload,
         'prep_hours': prep_hours,
     }
     return render(request, 'print_sf7.html', context)
@@ -440,7 +452,12 @@ def teachers_view(request):
     dept_filter = request.GET.get('dept')
     search_query = request.GET.get('q', '').strip()
 
-    teachers = Teacher.objects.prefetch_related('qualifications__subject').all().order_by('last_name')
+    teachers = Teacher.objects.prefetch_related(
+        'qualifications__subject',
+        'ancillary_duties',
+        'advised_sections'
+    ).all().order_by('last_name')
+
     if level_filter:
         teachers = teachers.filter(curriculum_level=level_filter)
     if dept_filter:
@@ -452,13 +469,30 @@ def teachers_view(request):
             Q(employee_id__icontains=search_query)
         )
 
+    # Attach assigned sections and handled subjects
+    teacher_assignments = defaultdict(list)
+    for req in SectionSubjectRequirement.objects.filter(assigned_teacher__isnull=False).select_related('section', 'subject'):
+        teacher_assignments[req.assigned_teacher_id].append(req)
+
+    for t in teachers:
+        t.handled_assignments = teacher_assignments.get(t.id, [])
+        t.teaching_hours = sum(r.subject.weekly_periods for r in t.handled_assignments)
+        t.duties_list = list(t.ancillary_duties.all())
+        t.ancillary_hours = sum(d.weekly_hours for d in t.duties_list)
+        t.total_workload = t.teaching_hours + t.ancillary_hours
+        t.is_overload = (t.teaching_hours > t.max_weekly_hours) or (t.total_workload > 40)
+
     departments = Department.objects.all().order_by('name')
     subjects = Subject.objects.all().order_by('grade_level', 'code')
+    timeframes = TimeSlot.objects.filter(day_of_week=1, is_break=False).order_by('period_number')
+    common_designations = AncillaryDuty.COMMON_DESIGNATIONS
 
     context = {
         'teachers': teachers,
         'departments': departments,
         'subjects': subjects,
+        'timeframes': timeframes,
+        'common_designations': common_designations,
         'level_filter': level_filter,
         'dept_filter': dept_filter,
         'search_query': search_query,
@@ -534,3 +568,445 @@ def delete_teacher_api(request, teacher_id):
     )
 
     return JsonResponse({'success': True, 'message': f'Faculty member {name} removed.'})
+
+
+
+def subjects_view(request):
+    grade_filter = request.GET.get('grade')
+    cluster_filter = request.GET.get('cluster')
+    search_query = request.GET.get('q', '').strip()
+
+    subjects = Subject.objects.all().order_by('grade_level', 'code')
+    if grade_filter:
+        subjects = subjects.filter(grade_level=grade_filter)
+    if cluster_filter:
+        subjects = subjects.filter(cluster=cluster_filter)
+    if search_query:
+        subjects = subjects.filter(
+            Q(code__icontains=search_query) |
+            Q(title__icontains=search_query)
+        )
+
+    context = {
+        'subjects': subjects,
+        'grade_filter': grade_filter,
+        'cluster_filter': cluster_filter,
+        'search_query': search_query,
+        'clusters': Subject.CLUSTER_CHOICES,
+        'room_types': Room.ROOM_TYPES,
+    }
+    return render(request, 'subjects.html', context)
+
+@csrf_exempt
+def add_subject_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    code = request.POST.get('code', '').strip().upper()
+    title = request.POST.get('title', '').strip()
+    grade_level = int(request.POST.get('grade_level', 7))
+    cluster = request.POST.get('cluster', 'jhs_core')
+    room_type_needed = request.POST.get('room_type_needed', 'lecture')
+    weekly_periods = int(request.POST.get('weekly_periods', 4))
+    consecutive_periods = int(request.POST.get('consecutive_periods', 1))
+    is_lab = request.POST.get('is_lab') == 'true' or consecutive_periods > 1 or room_type_needed != 'lecture'
+
+    if not code or not title:
+        return JsonResponse({'success': False, 'message': 'Subject code and title are required.'})
+
+    if Subject.objects.filter(code=code).exists():
+        return JsonResponse({'success': False, 'message': f'Subject code {code} already exists.'})
+
+    subj = Subject.objects.create(
+        code=code,
+        title=title,
+        grade_level=grade_level,
+        cluster=cluster,
+        room_type_needed=room_type_needed,
+        weekly_periods=weekly_periods,
+        consecutive_periods=consecutive_periods,
+        is_lab=is_lab
+    )
+
+    AuditLog.objects.create(
+        action="Subject Registered",
+        details=f"Added subject {subj.code} — {subj.title} (Grade {subj.grade_level}, {subj.get_cluster_display()})."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Subject {subj.code} registered successfully!',
+        'subject_id': subj.id
+    })
+
+@csrf_exempt
+def delete_subject_api(request, subject_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    subj = get_object_or_404(Subject, id=subject_id)
+    code = subj.code
+    subj.delete()
+
+    AuditLog.objects.create(
+        action="Subject Removed",
+        details=f"Deleted subject {code}."
+    )
+
+    return JsonResponse({'success': True, 'message': f'Subject {code} deleted.'})
+
+@csrf_exempt
+def add_timeslot_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    start_str = request.POST.get('start_time', '').strip() # e.g. "07:30"
+    end_str = request.POST.get('end_time', '').strip()     # e.g. "08:30"
+    label = request.POST.get('label', '').strip()
+    is_break = request.POST.get('is_break') == 'true'
+
+    if not start_str or not end_str:
+        return JsonResponse({'success': False, 'message': 'Start and end times are required.'})
+
+    try:
+        st_parts = [int(p) for p in start_str.split(':')]
+        et_parts = [int(p) for p in end_str.split(':')]
+        from datetime import time as dt_time
+        st = dt_time(st_parts[0], st_parts[1])
+        et = dt_time(et_parts[0], et_parts[1])
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': 'Invalid time format. Use HH:MM.'})
+
+    # Determine period_number
+    req_period = request.POST.get('period_number')
+    if req_period:
+        try:
+            next_period = int(req_period)
+        except ValueError:
+            existing_periods = TimeSlot.objects.filter(day_of_week=1).order_by('-period_number')
+            next_period = (existing_periods.first().period_number + 1) if existing_periods.exists() else 1
+    else:
+        existing_periods = TimeSlot.objects.filter(day_of_week=1).order_by('-period_number')
+        next_period = (existing_periods.first().period_number + 1) if existing_periods.exists() else 1
+    
+    if not label:
+        label = f"{'Break' if is_break else 'Period'} {st.strftime('%I:%M %p')} - {et.strftime('%I:%M %p')}"
+
+    # Create for Monday through Friday (days 1 to 5)
+    created_count = 0
+    for day in range(1, 6):
+        TimeSlot.objects.update_or_create(
+            day_of_week=day,
+            period_number=next_period,
+            defaults={
+                'start_time': st,
+                'end_time': et,
+                'label': label,
+                'is_break': is_break
+            }
+        )
+        created_count += 1
+
+    AuditLog.objects.create(
+        action="Timeframe Added",
+        details=f"Added custom timeframe {st.strftime('%I:%M %p')} - {et.strftime('%I:%M %p')} (Period {next_period}) across Mon-Fri."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Timeframe {st.strftime("%I:%M %p")} - {et.strftime("%I:%M %p")} added for Mon-Fri!',
+        'period_number': next_period,
+        'formatted_label': f"{st.strftime('%I:%M %p')} - {et.strftime('%I:%M %p')} (Period {next_period})"
+    })
+
+
+def sections_view(request):
+    grade_filter = request.GET.get('grade')
+    cluster_filter = request.GET.get('cluster')
+    search_query = request.GET.get('q', '').strip()
+
+    sections = Section.objects.select_related('homeroom', 'adviser', 'academic_year').prefetch_related(
+        'subject_requirements__subject',
+        'subject_requirements__assigned_teacher',
+        'subject_requirements__preferred_room'
+    ).all().order_by('grade_level', 'name')
+
+    if grade_filter:
+        sections = sections.filter(grade_level=grade_filter)
+    if cluster_filter:
+        sections = sections.filter(cluster=cluster_filter)
+    if search_query:
+        sections = sections.filter(name__icontains=search_query)
+
+    for sec in sections:
+        reqs = list(sec.subject_requirements.all())
+        sec.total_subjects_count = len(reqs)
+        sec.total_weekly_hours = sum(r.subject.weekly_periods for r in reqs)
+        sec.assigned_faculty_count = sum(1 for r in reqs if r.assigned_teacher is not None)
+
+    rooms = Room.objects.filter(is_active=True).order_by('name')
+    teachers = Teacher.objects.filter(is_active=True).order_by('last_name', 'first_name')
+    subjects = Subject.objects.all().order_by('grade_level', 'code')
+    clusters = Subject.CLUSTER_CHOICES
+    grades = Subject.GRADE_CHOICES
+
+    context = {
+        'sections': sections,
+        'rooms': rooms,
+        'teachers': teachers,
+        'subjects': subjects,
+        'clusters': clusters,
+        'grades': grades,
+        'grade_filter': grade_filter,
+        'cluster_filter': cluster_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'sections.html', context)
+
+
+def get_subjects_by_grade_api(request):
+    grade_level = request.GET.get('grade_level')
+    cluster = request.GET.get('cluster')
+    if not grade_level:
+        return JsonResponse({'success': False, 'message': 'Grade level required'}, status=400)
+    
+    subjs = Subject.objects.filter(grade_level=grade_level)
+    if cluster and cluster != 'all':
+        subjs = subjs.filter(Q(cluster=cluster) | Q(cluster='shs_core') | Q(cluster='jhs_core'))
+
+    subjs = subjs.order_by('code')
+    
+    qual_map = defaultdict(list)
+    for q in TeacherQualification.objects.filter(subject__in=subjs).select_related('teacher'):
+        qual_map[q.subject_id].append({'id': q.teacher.id, 'name': q.teacher.full_name})
+
+    data = []
+    for s in subjs:
+        data.append({
+            'id': s.id,
+            'code': s.code,
+            'title': s.title,
+            'weekly_periods': s.weekly_periods,
+            'room_type_needed': s.room_type_needed,
+            'room_type_label': s.get_room_type_needed_display(),
+            'qualified_teachers': qual_map.get(s.id, [])
+        })
+
+    return JsonResponse({'success': True, 'subjects': data})
+
+
+@csrf_exempt
+def add_section_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    grade_level = request.POST.get('grade_level')
+    cluster = request.POST.get('cluster', 'jhs_core')
+    homeroom_id = request.POST.get('homeroom_id')
+    adviser_id = request.POST.get('adviser_id')
+
+    if not name or not grade_level:
+        return JsonResponse({'success': False, 'message': 'Section name and grade level are required.'})
+
+    ay = AcademicYear.objects.filter(is_active=True).first()
+    if not ay:
+        ay = AcademicYear.objects.first()
+
+    if Section.objects.filter(name=name, academic_year=ay).exists():
+        return JsonResponse({'success': False, 'message': f'Section "{name}" already exists.'})
+
+    homeroom = Room.objects.filter(id=homeroom_id).first() if homeroom_id else None
+    adviser = Teacher.objects.filter(id=adviser_id).first() if adviser_id else None
+
+    section = Section.objects.create(
+        name=name,
+        grade_level=int(grade_level),
+        cluster=cluster,
+        homeroom=homeroom,
+        adviser=adviser,
+        academic_year=ay
+    )
+
+    if adviser:
+        AncillaryDuty.objects.get_or_create(
+            teacher=adviser,
+            title=f"Class Adviser ({section.name})",
+            defaults={'designation_type': 'adviser', 'weekly_hours': 2.0}
+        )
+
+    assignments_json = request.POST.get('assignments')
+    assigned_count = 0
+    if assignments_json:
+        try:
+            assignments = json.loads(assignments_json)
+            for item in assignments:
+                subj_id = item.get('subject_id')
+                teacher_id = item.get('teacher_id') or None
+                room_id = item.get('room_id') or None
+
+                subj = Subject.objects.filter(id=subj_id).first()
+                if subj:
+                    SectionSubjectRequirement.objects.create(
+                        section=section,
+                        subject=subj,
+                        assigned_teacher_id=teacher_id if teacher_id else None,
+                        preferred_room_id=room_id if room_id else None
+                    )
+                    assigned_count += 1
+        except Exception:
+            pass
+
+    AuditLog.objects.create(
+        action="Section Created",
+        details=f"Created section {section.name} (Grade {section.grade_level}) with {assigned_count} subject assignments."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Section "{section.name}" created with {assigned_count} subjects established!',
+        'section_id': section.id
+    })
+
+
+@csrf_exempt
+def update_section_assignments_api(request, section_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    section = get_object_or_404(Section, id=section_id)
+    name = request.POST.get('name', '').strip()
+    homeroom_id = request.POST.get('homeroom_id')
+    adviser_id = request.POST.get('adviser_id')
+
+    if name:
+        section.name = name
+    if homeroom_id:
+        section.homeroom = Room.objects.filter(id=homeroom_id).first()
+    if adviser_id is not None:
+        if adviser_id:
+            adviser = Teacher.objects.filter(id=adviser_id).first()
+            section.adviser = adviser
+            if adviser:
+                AncillaryDuty.objects.get_or_create(
+                    teacher=adviser,
+                    title=f"Class Adviser ({section.name})",
+                    defaults={'designation_type': 'adviser', 'weekly_hours': 2.0}
+                )
+        else:
+            section.adviser = None
+    section.save()
+
+    assignments_json = request.POST.get('assignments')
+    if assignments_json:
+        try:
+            assignments = json.loads(assignments_json)
+            existing_subjs = set()
+            for item in assignments:
+                subj_id = item.get('subject_id')
+                teacher_id = item.get('teacher_id') or None
+                room_id = item.get('room_id') or None
+
+                subj = Subject.objects.filter(id=subj_id).first()
+                if subj:
+                    existing_subjs.add(subj.id)
+                    SectionSubjectRequirement.objects.update_or_create(
+                        section=section,
+                        subject=subj,
+                        defaults={
+                            'assigned_teacher_id': teacher_id if teacher_id else None,
+                            'preferred_room_id': room_id if room_id else None
+                        }
+                    )
+            if request.POST.get('replace_all') == 'true':
+                SectionSubjectRequirement.objects.filter(section=section).exclude(subject_id__in=existing_subjs).delete()
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error updating assignments: {str(e)}'})
+
+    AuditLog.objects.create(
+        action="Section Updated",
+        details=f"Updated subject & teacher assignments for section {section.name}."
+    )
+
+    return JsonResponse({'success': True, 'message': f'Assignments for {section.name} updated successfully!'})
+
+
+@csrf_exempt
+def delete_section_api(request, section_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    section = get_object_or_404(Section, id=section_id)
+    name = section.name
+    section.delete()
+
+    AuditLog.objects.create(
+        action="Section Deleted",
+        details=f"Deleted section {name} and its curriculum requirements."
+    )
+
+    return JsonResponse({'success': True, 'message': f'Section {name} deleted.'})
+
+
+@csrf_exempt
+def add_ancillary_duty_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    teacher_id = request.POST.get('teacher_id')
+    title = request.POST.get('title', '').strip()
+    designation_type = request.POST.get('designation_type', 'custom')
+    weekly_hours_str = request.POST.get('weekly_hours', '2.0')
+    description = request.POST.get('description', '').strip()
+
+    if not teacher_id or not title:
+        return JsonResponse({'success': False, 'message': 'Teacher and Designation title are required.'})
+
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    try:
+        weekly_hours = float(weekly_hours_str)
+    except ValueError:
+        weekly_hours = 2.0
+
+    duty = AncillaryDuty.objects.create(
+        teacher=teacher,
+        title=title,
+        designation_type=designation_type,
+        weekly_hours=weekly_hours,
+        description=description
+    )
+
+    AuditLog.objects.create(
+        action="Ancillary Designation Added",
+        details=f"Assigned '{duty.title}' ({duty.weekly_hours}h/wk) to {teacher.full_name}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f"Designation '{duty.title}' added to {teacher.full_name} ({duty.weekly_hours} hrs/wk).",
+        'duty_id': duty.id,
+        'title': duty.title,
+        'weekly_hours': duty.weekly_hours,
+    })
+
+
+@csrf_exempt
+def delete_ancillary_duty_api(request, duty_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    duty = get_object_or_404(AncillaryDuty, id=duty_id)
+    teacher_name = duty.teacher.full_name
+    title = duty.title
+    duty.delete()
+
+    AuditLog.objects.create(
+        action="Ancillary Designation Removed",
+        details=f"Removed designation '{title}' from {teacher_name}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f"Designation '{title}' removed from {teacher_name}."
+    })
+
