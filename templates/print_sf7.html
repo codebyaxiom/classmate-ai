@@ -109,7 +109,7 @@
                 <tr>
                     <td class="p-2 border-r border-slate-300 font-semibold">{{ duty.title }}</td>
                     <td class="p-2 border-r border-slate-300">{{ duty.description|default:"Administrative / School Co-curricular Designation" }}</td>
-                    <td class="p-2 text-center font-bold text-amber-900">{{ duty.weekly_hours|floatformat:1 }}</td>
+                    <td class="p-2 text-center font-bold text-amber-900">{{ duty.weekly_hours|floatformat:0 }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -120,15 +120,15 @@
             <tfoot class="bg-slate-50 font-bold border-t border-slate-300">
                 <tr>
                     <td colspan="2" class="p-2 text-right">Total Ancillary Credited Hours:</td>
-                    <td class="p-2 text-center text-amber-900">{{ ancillary_hours|floatformat:1 }}</td>
+                    <td class="p-2 text-center text-amber-900">{{ ancillary_hours|floatformat:0 }}</td>
                 </tr>
                 <tr class="bg-blue-50 text-deped-darkblue border-t border-slate-300">
                     <td colspan="2" class="p-2 text-right">TOTAL OFFICIAL WORKLOAD (Teaching + Ancillary):</td>
-                    <td class="p-2 text-center font-extrabold text-sm">{{ total_workload|floatformat:1 }} / 40.0 hrs</td>
+                    <td class="p-2 text-center font-extrabold text-sm">{{ total_workload|floatformat:0 }} / 40 hrs</td>
                 </tr>
                 <tr>
                     <td colspan="2" class="p-2 text-right text-slate-600">Remaining Lesson Preparation & Evaluation Time:</td>
-                    <td class="p-2 text-center text-slate-700">{{ prep_hours|floatformat:1 }} hrs</td>
+                    <td class="p-2 text-center text-slate-700">{{ prep_hours|floatformat:0 }} hrs</td>
                 </tr>
             </tfoot>
         </table>

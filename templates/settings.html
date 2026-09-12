@@ -456,9 +456,14 @@
                         <p class="text-[11px] text-slate-500 line-clamp-2 pt-0.5">{{ c.description }}</p>
                         {% endif %}
                     </div>
-                    <button type="button" onclick="deleteCluster({{ c.id }}, '{{ c.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0" title="Delete Cluster">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button type="button" onclick="openEditClusterModal({{ c.id }}, '{{ c.code|escapejs }}', '{{ c.name|escapejs }}', '{{ c.curriculum_level|escapejs }}', '{{ c.description|escapejs }}')" class="p-1.5 text-slate-400 hover:text-deped-blue hover:bg-blue-50 rounded-lg transition" title="Edit Cluster">
+                            <i class="fa-solid fa-pen-to-square text-xs"></i>
+                        </button>
+                        <button type="button" onclick="deleteCluster({{ c.id }}, '{{ c.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0" title="Delete Cluster">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
                 </div>
                 {% empty %}
                 <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
@@ -541,16 +546,21 @@
                             <span class="font-mono text-[10px] text-slate-400 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">{{ ac.code }}</span>
                         </div>
                         <div class="flex items-center space-x-2 text-[11px] text-slate-600">
-                            <span class="font-bold text-deped-darkblue"><i class="fa-solid fa-clock text-[10px] mr-1"></i>{{ ac.default_weekly_hours }} hrs/wk</span>
+                            <span class="font-bold text-deped-darkblue"><i class="fa-solid fa-clock text-[10px] mr-1"></i>{{ ac.default_weekly_hours|floatformat:"-1" }} hrs/wk</span>
                             <span>credited</span>
                         </div>
                         {% if ac.description %}
                         <p class="text-[11px] text-slate-500 line-clamp-2">{{ ac.description }}</p>
                         {% endif %}
                     </div>
-                    <button type="button" onclick="deleteAncillaryCatalog({{ ac.id }}, '{{ ac.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete Designation">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button type="button" onclick="openEditAncillaryCatalogModal({{ ac.id }}, '{{ ac.code|escapejs }}', '{{ ac.name|escapejs }}', {{ ac.default_weekly_hours }}, '{{ ac.description|escapejs }}')" class="p-1.5 text-slate-400 hover:text-deped-blue hover:bg-blue-50 rounded-lg transition" title="Edit Designation">
+                            <i class="fa-solid fa-pen-to-square text-xs"></i>
+                        </button>
+                        <button type="button" onclick="deleteAncillaryCatalog({{ ac.id }}, '{{ ac.name|escapejs }}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete Designation">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
                 </div>
                 {% empty %}
                 <div class="sm:col-span-3 p-8 text-center text-slate-400 text-xs">
@@ -760,6 +770,57 @@
     </div>
 </div>
 
+<!-- Modal: Edit Curriculum Cluster -->
+<div id="editClusterModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-pen-to-square text-deped-blue"></i>
+                <span>Edit Curriculum Cluster</span>
+            </h3>
+            <button onclick="closeEditClusterModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="editClusterForm" onsubmit="submitEditCluster(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="editClusterId">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Cluster / Strand Name *</label>
+                <input type="text" name="name" id="editClusterName" required placeholder="e.g. Pure Academic, STEM Cluster, TVL ICT" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Cluster Code / Identifier *</label>
+                <input type="text" name="code" id="editClusterCode" required placeholder="e.g. pure_academic, stem, tvl_ict" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-[11px] outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Curriculum Level *</label>
+                <select name="curriculum_level" id="editClusterLevel" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    {% for l_val, l_label in cluster_levels %}
+                    <option value="{{ l_val }}">{{ l_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Description (Optional)</label>
+                <textarea name="description" id="editClusterDesc" rows="2" placeholder="Brief description of this curriculum cluster or track..." class="w-full px-3 py-2 rounded-xl border border-slate-300 font-normal outline-none focus:ring-2 focus:ring-deped-blue"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeEditClusterModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold transition shadow">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: Add Academic Year -->
 <div id="addAYModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
@@ -880,7 +941,7 @@
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Default Weekly Hours</label>
-                    <input type="number" name="default_weekly_hours" value="2.0" step="0.5" min="0.5" max="20" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+                    <input type="number" name="default_weekly_hours" value="2" step="any" min="0.5" max="40" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
                 </div>
             </div>
 
@@ -895,6 +956,54 @@
                 </button>
                 <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow">
                     Save Designation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Ancillary Catalog Item -->
+<div id="editAncillaryCatalogModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-pen-to-square text-amber-600"></i>
+                <span>Edit Special Designation</span>
+            </h3>
+            <button onclick="closeEditAncillaryCatalogModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="editAncillaryCatalogForm" onsubmit="submitEditAncillaryCatalog(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="editAncillaryCatId">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Designation Title *</label>
+                <input type="text" name="name" id="editAncillaryCatName" required placeholder="e.g. School Paper Adviser, Sports Coordinator" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Designation Code</label>
+                    <input type="text" name="code" id="editAncillaryCatCode" placeholder="e.g. school_paper" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-[11px] outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Default Weekly Hours</label>
+                    <input type="number" name="default_weekly_hours" id="editAncillaryCatHours" step="any" min="0.5" max="40" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Notes / Terms of Reference</label>
+                <textarea name="description" id="editAncillaryCatDesc" rows="2" placeholder="Guidelines or duties attached to this role..." class="w-full px-3 py-2 rounded-xl border border-slate-300 font-normal outline-none focus:ring-2 focus:ring-deped-blue"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeEditAncillaryCatalogModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow">
+                    Save Changes
                 </button>
             </div>
         </form>
@@ -1107,6 +1216,34 @@ async function deleteFacilityType(ftId, ftName) {
 function openAddClusterModal() { document.getElementById('addClusterModal').classList.remove('hidden'); }
 function closeAddClusterModal() { document.getElementById('addClusterModal').classList.add('hidden'); }
 
+function openEditClusterModal(id, code, name, level, desc) {
+    document.getElementById('editClusterId').value = id;
+    document.getElementById('editClusterCode').value = code;
+    document.getElementById('editClusterName').value = name;
+    document.getElementById('editClusterLevel').value = level;
+    document.getElementById('editClusterDesc').value = desc || '';
+    document.getElementById('editClusterModal').classList.remove('hidden');
+}
+function closeEditClusterModal() {
+    document.getElementById('editClusterModal').classList.add('hidden');
+}
+
+async function submitEditCluster(e) {
+    e.preventDefault();
+    const id = document.getElementById('editClusterId').value;
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch(`/api/clusters/update/${id}/`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#clusters';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to update curriculum cluster."); }
+}
+
 async function submitAddCluster(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -1203,6 +1340,34 @@ async function toggleTerm(termId) {
 // Ancillary Catalog
 function openAddAncillaryCatalogModal() { document.getElementById('addAncillaryCatalogModal').classList.remove('hidden'); }
 function closeAddAncillaryCatalogModal() { document.getElementById('addAncillaryCatalogModal').classList.add('hidden'); }
+
+function openEditAncillaryCatalogModal(id, code, name, hours, desc) {
+    document.getElementById('editAncillaryCatId').value = id;
+    document.getElementById('editAncillaryCatCode').value = code;
+    document.getElementById('editAncillaryCatName').value = name;
+    document.getElementById('editAncillaryCatHours').value = hours;
+    document.getElementById('editAncillaryCatDesc').value = desc || '';
+    document.getElementById('editAncillaryCatalogModal').classList.remove('hidden');
+}
+function closeEditAncillaryCatalogModal() {
+    document.getElementById('editAncillaryCatalogModal').classList.add('hidden');
+}
+
+async function submitEditAncillaryCatalog(e) {
+    e.preventDefault();
+    const id = document.getElementById('editAncillaryCatId').value;
+    const formData = new FormData(e.target);
+    try {
+        const res = await fetch(`/api/ancillary-catalog/update/${id}/`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.location.hash = '#workload';
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) { alert("Failed to update designation."); }
+}
 
 async function submitAddAncillaryCatalog(e) {
     e.preventDefault();

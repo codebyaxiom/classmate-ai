@@ -593,12 +593,15 @@ def print_sf7_view(request, teacher_id=None):
         if schedule:
             items = ScheduleItem.objects.filter(schedule=schedule, teacher=teacher).select_related('subject', 'section', 'room', 'time_slot').order_by('time_slot__day_of_week', 'time_slot__period_number')
         ancillary_duties = list(teacher.ancillary_duties.all())
-        ancillary_hours = sum(d.weekly_hours for d in ancillary_duties)
+        anc = sum(d.weekly_hours for d in ancillary_duties)
+        ancillary_hours = int(anc) if anc == int(anc) else round(anc, 1)
     
     # Calculate weekly hours
     teaching_hours = len(items)
-    total_workload = teaching_hours + ancillary_hours
-    prep_hours = max(0.0, 40.0 - total_workload) if total_workload > 0 else 0.0
+    tot = teaching_hours + ancillary_hours
+    total_workload = int(tot) if tot == int(tot) else round(tot, 1)
+    prep = max(0.0, 40.0 - total_workload) if total_workload > 0 else 0.0
+    prep_hours = int(prep) if prep == int(prep) else round(prep, 1)
 
     context = {
         'schedule': schedule,
@@ -643,10 +646,13 @@ def teachers_view(request):
 
     for t in teachers:
         t.handled_assignments = teacher_assignments.get(t.id, [])
-        t.teaching_hours = sum(r.subject.weekly_periods for r in t.handled_assignments)
+        teach = sum(r.subject.weekly_periods for r in t.handled_assignments)
+        t.teaching_hours = int(teach) if teach == int(teach) else round(teach, 1)
         t.duties_list = list(t.ancillary_duties.all())
-        t.ancillary_hours = sum(d.weekly_hours for d in t.duties_list)
-        t.total_workload = t.teaching_hours + t.ancillary_hours
+        anc = sum(d.weekly_hours for d in t.duties_list)
+        t.ancillary_hours = int(anc) if anc == int(anc) else round(anc, 1)
+        tot = t.teaching_hours + t.ancillary_hours
+        t.total_workload = int(tot) if tot == int(tot) else round(tot, 1)
         t.is_overload = (t.teaching_hours > t.max_weekly_hours) or (t.total_workload > 40)
 
     departments = Department.objects.all().order_by('name')
@@ -683,8 +689,14 @@ def add_teacher_api(request):
     email = request.POST.get('email', '').strip()
     curriculum_level = request.POST.get('curriculum_level', 'both').strip()
     dept_id = request.POST.get('department_id')
-    max_daily = int(request.POST.get('max_daily_hours', 6))
-    max_weekly = int(request.POST.get('max_weekly_hours', 30))
+    try:
+        max_daily = float(request.POST.get('max_daily_hours', 6.0))
+    except (ValueError, TypeError):
+        max_daily = 6.0
+    try:
+        max_weekly = float(request.POST.get('max_weekly_hours', 30.0))
+    except (ValueError, TypeError):
+        max_weekly = 30.0
     pref_vacant = request.POST.get('preferred_vacant_period')
     subject_ids = request.POST.getlist('subject_ids')
 
@@ -725,6 +737,70 @@ def add_teacher_api(request):
         'message': f'Teacher {teacher.full_name} added successfully!',
         'teacher_id': teacher.id
     })
+
+
+@csrf_exempt
+def update_teacher_api(request, teacher_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    emp_id = request.POST.get('employee_id', '').strip()
+    first_name = request.POST.get('first_name', '').strip()
+    last_name = request.POST.get('last_name', '').strip()
+    email = request.POST.get('email', '').strip()
+    curriculum_level = request.POST.get('curriculum_level', 'both').strip()
+    dept_id = request.POST.get('department_id')
+    try:
+        max_daily = float(request.POST.get('max_daily_hours', 6.0))
+    except (ValueError, TypeError):
+        max_daily = 6.0
+    try:
+        max_weekly = float(request.POST.get('max_weekly_hours', 30.0))
+    except (ValueError, TypeError):
+        max_weekly = 30.0
+    pref_vacant = request.POST.get('preferred_vacant_period')
+    subject_ids = request.POST.getlist('subject_ids')
+
+    if not emp_id or not first_name or not last_name:
+        return JsonResponse({'success': False, 'message': 'First Name, Last Name, and Employee ID are required.'})
+
+    if Teacher.objects.filter(employee_id=emp_id).exclude(id=teacher.id).exists():
+        return JsonResponse({'success': False, 'message': f'Employee ID {emp_id} is already in use by another teacher.'})
+
+    dept = Department.objects.filter(id=dept_id).first() if dept_id else None
+    pref_v_int = int(pref_vacant) if pref_vacant and pref_vacant.isdigit() else None
+
+    old_name = teacher.full_name
+    teacher.employee_id = emp_id
+    teacher.first_name = first_name
+    teacher.last_name = last_name
+    teacher.email = email or f"{first_name.lower()}.{last_name.lower()}@deped.gov.ph"
+    teacher.curriculum_level = curriculum_level
+    teacher.department = dept
+    teacher.max_daily_hours = max_daily
+    teacher.max_weekly_hours = max_weekly
+    teacher.preferred_vacant_period = pref_v_int
+    teacher.save()
+
+    # Update qualifications
+    TeacherQualification.objects.filter(teacher=teacher).delete()
+    for s_id in subject_ids:
+        subj = Subject.objects.filter(id=s_id).first()
+        if subj:
+            TeacherQualification.objects.create(teacher=teacher, subject=subj)
+
+    AuditLog.objects.create(
+        action="Teacher Profile Updated",
+        details=f"Updated faculty member {old_name} -> {teacher.full_name} ({teacher.employee_id}, {teacher.get_curriculum_level_display()}) with {len(subject_ids)} qualified subjects."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Teacher {teacher.full_name} updated successfully!',
+        'teacher_id': teacher.id
+    })
+
 
 @csrf_exempt
 def delete_teacher_api(request, teacher_id):
@@ -780,7 +856,10 @@ def add_subject_api(request):
     grade_level = int(request.POST.get('grade_level', 7))
     cluster = request.POST.get('cluster', 'jhs_core')
     room_type_needed = request.POST.get('room_type_needed', 'lecture')
-    weekly_periods = int(request.POST.get('weekly_periods', 4))
+    try:
+        weekly_periods = float(request.POST.get('weekly_periods', 4.0))
+    except (ValueError, TypeError):
+        weekly_periods = 4.0
     consecutive_periods = int(request.POST.get('consecutive_periods', 1))
     is_lab = request.POST.get('is_lab') == 'true' or consecutive_periods > 1 or room_type_needed != 'lecture'
 
@@ -811,6 +890,60 @@ def add_subject_api(request):
         'message': f'Subject {subj.code} registered successfully!',
         'subject_id': subj.id
     })
+
+
+@csrf_exempt
+def update_subject_api(request, subject_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    subj = get_object_or_404(Subject, id=subject_id)
+    code = request.POST.get('code', '').strip().upper()
+    title = request.POST.get('title', '').strip()
+    try:
+        grade_level = int(request.POST.get('grade_level', subj.grade_level))
+    except (ValueError, TypeError):
+        grade_level = subj.grade_level
+    cluster = request.POST.get('cluster', subj.cluster)
+    room_type_needed = request.POST.get('room_type_needed', subj.room_type_needed)
+    try:
+        weekly_periods = float(request.POST.get('weekly_periods', subj.weekly_periods))
+    except (ValueError, TypeError):
+        weekly_periods = subj.weekly_periods
+    try:
+        consecutive_periods = int(request.POST.get('consecutive_periods', subj.consecutive_periods))
+    except (ValueError, TypeError):
+        consecutive_periods = subj.consecutive_periods
+    is_lab = request.POST.get('is_lab') == 'true' or consecutive_periods > 1 or room_type_needed != 'lecture'
+
+    if not code or not title:
+        return JsonResponse({'success': False, 'message': 'Subject code and title are required.'})
+
+    if Subject.objects.filter(code=code).exclude(id=subj.id).exists():
+        return JsonResponse({'success': False, 'message': f'Subject code {code} is already used by another subject.'})
+
+    old_code = subj.code
+    subj.code = code
+    subj.title = title
+    subj.grade_level = grade_level
+    subj.cluster = cluster
+    subj.room_type_needed = room_type_needed
+    subj.weekly_periods = weekly_periods
+    subj.consecutive_periods = consecutive_periods
+    subj.is_lab = is_lab
+    subj.save()
+
+    AuditLog.objects.create(
+        action="Subject Updated",
+        details=f"Updated subject {old_code} -> {subj.code} — {subj.title} (Grade {subj.grade_level}, {subj.cluster_display_name})."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Subject {subj.code} updated successfully!',
+        'subject_id': subj.id
+    })
+
 
 @csrf_exempt
 def delete_subject_api(request, subject_id):
@@ -1463,9 +1596,9 @@ def update_workload_policy_api(request):
 
     profile = SchoolProfile.get_settings()
     try:
-        profile.max_daily_teaching_hours = int(request.POST.get('max_daily_teaching_hours', 6))
-        profile.max_weekly_teaching_hours = int(request.POST.get('max_weekly_teaching_hours', 30))
-        profile.standard_workweek_hours = int(request.POST.get('standard_workweek_hours', 40))
+        profile.max_daily_teaching_hours = float(request.POST.get('max_daily_teaching_hours', 6))
+        profile.max_weekly_teaching_hours = float(request.POST.get('max_weekly_teaching_hours', 30))
+        profile.standard_workweek_hours = float(request.POST.get('standard_workweek_hours', 40))
         profile.save()
 
         AuditLog.objects.create(
@@ -1698,6 +1831,49 @@ def add_ancillary_catalog_api(request):
 
 
 @csrf_exempt
+def update_ancillary_catalog_api(request, cat_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    cat = get_object_or_404(AncillaryDesignationCatalog, id=cat_id)
+    name = request.POST.get('name', '').strip()
+    code = request.POST.get('code', '').strip().lower().replace(' ', '_').replace('-', '_')
+    try:
+        hours = float(request.POST.get('default_weekly_hours', cat.default_weekly_hours))
+    except (ValueError, TypeError):
+        hours = cat.default_weekly_hours
+    description = request.POST.get('description', '').strip()
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Designation name is required.'})
+    if not code:
+        code = name.lower().replace(' ', '_').replace('-', '_')
+
+    if AncillaryDesignationCatalog.objects.filter(code=code).exclude(id=cat.id).exists():
+        return JsonResponse({'success': False, 'message': f'Designation with code "{code}" already exists.'})
+
+    old_name = cat.name
+    cat.name = name
+    cat.code = code
+    cat.default_weekly_hours = hours
+    cat.description = description
+    cat.save()
+
+    AuditLog.objects.create(
+        action="Ancillary Designation Updated",
+        details=f"Updated '{old_name}' -> '{cat.name}' ({hours}h/wk) in school designation catalog."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Designation "{cat.name}" updated successfully!',
+        'id': cat.id,
+        'name': cat.name,
+        'hours': cat.default_weekly_hours,
+    })
+
+
+@csrf_exempt
 def delete_ancillary_catalog_api(request, cat_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
@@ -1749,6 +1925,46 @@ def add_cluster_api(request):
     return JsonResponse({
         'success': True,
         'message': f'Curriculum Cluster "{cluster.name}" established successfully!',
+        'cluster_id': cluster.id,
+        'cluster_code': cluster.code,
+        'cluster_name': cluster.name,
+    })
+
+
+@csrf_exempt
+def update_cluster_api(request, cluster_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    cluster = get_object_or_404(CurriculumCluster, id=cluster_id)
+    name = request.POST.get('name', '').strip()
+    code = request.POST.get('code', '').strip().lower().replace(' ', '_').replace('-', '_')
+    curriculum_level = request.POST.get('curriculum_level', cluster.curriculum_level).strip()
+    description = request.POST.get('description', '').strip()
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Cluster name is required.'})
+    if not code:
+        code = name.lower().replace(' ', '_').replace('-', '_')
+
+    if CurriculumCluster.objects.filter(code=code).exclude(id=cluster.id).exists():
+        return JsonResponse({'success': False, 'message': f'Cluster with code "{code}" already exists.'})
+
+    old_name = cluster.name
+    cluster.name = name
+    cluster.code = code
+    cluster.curriculum_level = curriculum_level
+    cluster.description = description
+    cluster.save()
+
+    AuditLog.objects.create(
+        action="Curriculum Cluster Updated",
+        details=f"Updated cluster '{old_name}' -> '{cluster.name}' ({cluster.code}) for {cluster.get_curriculum_level_display()}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Curriculum Cluster "{cluster.name}" updated successfully!',
         'cluster_id': cluster.id,
         'cluster_code': cluster.code,
         'cluster_name': cluster.name,

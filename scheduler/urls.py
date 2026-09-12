@@ -13,6 +13,7 @@ urlpatterns = [
     
     path('teachers/', views.teachers_view, name='teachers'),
     path('api/teachers/add/', views.add_teacher_api, name='api_add_teacher'),
+    path('api/teachers/update/<int:teacher_id>/', views.update_teacher_api, name='api_update_teacher'),
     path('api/teachers/delete/<int:teacher_id>/', views.delete_teacher_api, name='api_delete_teacher'),
     path('api/ancillary/add/', views.add_ancillary_duty_api, name='api_add_ancillary_duty'),
     path('api/ancillary/delete/<int:duty_id>/', views.delete_ancillary_duty_api, name='api_delete_ancillary_duty'),
@@ -25,6 +26,7 @@ urlpatterns = [
     
     path('subjects/', views.subjects_view, name='subjects'),
     path('api/subjects/add/', views.add_subject_api, name='api_add_subject'),
+    path('api/subjects/update/<int:subject_id>/', views.update_subject_api, name='api_update_subject'),
     path('api/subjects/delete/<int:subject_id>/', views.delete_subject_api, name='api_delete_subject'),
     path('api/timeslots/add/', views.add_timeslot_api, name='api_add_timeslot'),
 
@@ -47,12 +49,14 @@ urlpatterns = [
     path('api/facility-types/add/', views.add_facility_type_api, name='api_add_facility_type'),
     path('api/facility-types/delete/<int:ft_id>/', views.delete_facility_type_api, name='api_delete_facility_type'),
     path('api/clusters/add/', views.add_cluster_api, name='api_add_cluster'),
+    path('api/clusters/update/<int:cluster_id>/', views.update_cluster_api, name='api_update_cluster'),
     path('api/clusters/delete/<int:cluster_id>/', views.delete_cluster_api, name='api_delete_cluster'),
     path('api/academic-years/add/', views.add_academic_year_api, name='api_add_academic_year'),
     path('api/academic-years/<int:ay_id>/toggle/', views.toggle_academic_year_api, name='api_toggle_academic_year'),
     path('api/terms/add/', views.add_term_api, name='api_add_term'),
     path('api/terms/<int:term_id>/toggle/', views.toggle_term_api, name='api_toggle_term'),
     path('api/ancillary-catalog/add/', views.add_ancillary_catalog_api, name='api_add_ancillary_catalog'),
+    path('api/ancillary-catalog/update/<int:cat_id>/', views.update_ancillary_catalog_api, name='api_update_ancillary_catalog'),
     path('api/ancillary-catalog/delete/<int:cat_id>/', views.delete_ancillary_catalog_api, name='api_delete_ancillary_catalog'),
 
     # Official DepEd Printouts

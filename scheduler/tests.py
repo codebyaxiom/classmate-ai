@@ -609,4 +609,134 @@ class ClassmateAITestSuite(TestCase):
         self.assertEqual(res_s.status_code, 200)
         self.assertContains(res_s, "Setup Sequence Recommendation: Complete Prerequisites First")
 
+    def test_subject_decimal_weekly_periods_and_update_api(self):
+        # Test adding subject with decimal weekly periods (e.g. 1.5 hrs)
+        res_add = self.client.post(reverse('api_add_subject'), {
+            'code': 'DEC-101',
+            'title': 'Decimal Test Subject',
+            'grade_level': 7,
+            'cluster': 'jhs_core',
+            'weekly_periods': '1.5',
+            'room_type_needed': 'lecture',
+            'consecutive_periods': 1,
+            'is_lab': False,
+        })
+        self.assertEqual(res_add.status_code, 200)
+        data = res_add.json()
+        self.assertTrue(data['success'])
+        subj_id = data['subject_id']
+
+        subj = Subject.objects.get(id=subj_id)
+        self.assertEqual(subj.weekly_periods, 1.5)
+
+        # Test updating subject via update_subject_api
+        res_update = self.client.post(reverse('api_update_subject', args=[subj_id]), {
+            'code': 'DEC-101-UPDATED',
+            'title': 'Decimal Test Subject Updated',
+            'grade_level': 8,
+            'cluster': 'jhs_core',
+            'weekly_periods': '3.5',
+            'room_type_needed': 'science_lab',
+            'consecutive_periods': 2,
+            'is_lab': 'true',
+        })
+        self.assertEqual(res_update.status_code, 200)
+        self.assertTrue(res_update.json()['success'])
+
+        subj.refresh_from_db()
+        self.assertEqual(subj.code, 'DEC-101-UPDATED')
+        self.assertEqual(subj.title, 'Decimal Test Subject Updated')
+        self.assertEqual(subj.grade_level, 8)
+        self.assertEqual(subj.weekly_periods, 3.5)
+        self.assertEqual(subj.consecutive_periods, 2)
+        self.assertTrue(subj.is_lab)
+
+    def test_teacher_decimal_hours_and_update_api(self):
+        # Update teacher with decimal max daily and weekly hours
+        res_update = self.client.post(reverse('api_update_teacher', args=[self.teacher.id]), {
+            'employee_id': 'T-001-MOD',
+            'first_name': 'Juanito',
+            'last_name': 'Dela Cruz',
+            'email': 'juanito@deped.gov.ph',
+            'curriculum_level': 'shs',
+            'max_daily_hours': '5.5',
+            'max_weekly_hours': '27.5',
+            'subject_ids': [self.subject.id],
+        })
+        self.assertEqual(res_update.status_code, 200)
+        self.assertTrue(res_update.json()['success'])
+
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.employee_id, 'T-001-MOD')
+        self.assertEqual(self.teacher.first_name, 'Juanito')
+        self.assertEqual(self.teacher.max_daily_hours, 5.5)
+        self.assertEqual(self.teacher.max_weekly_hours, 27.5)
+        self.assertEqual(self.teacher.curriculum_level, 'shs')
+        self.assertTrue(TeacherQualification.objects.filter(teacher=self.teacher, subject=self.subject).exists())
+
+    def test_cluster_update_api(self):
+        # Create cluster
+        cluster = CurriculumCluster.objects.create(
+            name="STEM Academic Track",
+            code="stem_track",
+            curriculum_level="shs",
+            description="Science & Technology"
+        )
+        res_update = self.client.post(reverse('api_update_cluster', args=[cluster.id]), {
+            'name': 'STEM Advanced Track',
+            'code': 'stem_adv',
+            'curriculum_level': 'shs',
+            'description': 'Updated description',
+        })
+        self.assertEqual(res_update.status_code, 200)
+        self.assertTrue(res_update.json()['success'])
+
+        cluster.refresh_from_db()
+        self.assertEqual(cluster.name, 'STEM Advanced Track')
+        self.assertEqual(cluster.code, 'stem_adv')
+        self.assertEqual(cluster.description, 'Updated description')
+
+    def test_ancillary_catalog_update_api(self):
+        from scheduler.models import AncillaryDesignationCatalog
+        cat = AncillaryDesignationCatalog.objects.create(
+            name="DRRM Coordinator",
+            code="drrm_coord",
+            default_weekly_hours=2.0,
+            description="Disaster preparedness"
+        )
+        res_update = self.client.post(reverse('api_update_ancillary_catalog', args=[cat.id]), {
+            'name': 'Senior DRRM Officer',
+            'code': 'drrm_sr',
+            'default_weekly_hours': '3.5',
+            'description': 'Updated DRRM responsibilities',
+        })
+        self.assertEqual(res_update.status_code, 200)
+        self.assertTrue(res_update.json()['success'])
+
+        cat.refresh_from_db()
+        self.assertEqual(cat.name, 'Senior DRRM Officer')
+        self.assertEqual(cat.code, 'drrm_sr')
+        self.assertEqual(cat.default_weekly_hours, 3.5)
+
+    def test_timeframe_edit_in_place(self):
+        # Update existing period P1 using api_add_timeframe with period_number
+        res_edit = self.client.post(reverse('api_add_timeframe'), {
+            'grade_level': 0,
+            'period_number': 1,
+            'label': 'Morning Homeroom & Prep',
+            'start_time': '07:30',
+            'end_time': '08:30',
+            'is_break': False,
+        })
+        self.assertEqual(res_edit.status_code, 200)
+        self.assertTrue(res_edit.json()['success'])
+
+        # Check all 5 days for P1 were updated
+        for day in range(1, 6):
+            slot = TimeSlot.objects.get(grade_level=0, day_of_week=day, period_number=1)
+            self.assertEqual(slot.label, 'Morning Homeroom & Prep')
+            self.assertEqual(slot.start_time.strftime('%H:%M'), '07:30')
+            self.assertEqual(slot.end_time.strftime('%H:%M'), '08:30')
+
+
 

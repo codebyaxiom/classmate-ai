@@ -101,7 +101,7 @@
                             </span>
                         </td>
                         <td class="py-3 px-3 text-center">
-                            <span class="font-extrabold text-sm text-slate-800">{{ s.weekly_periods }}</span>
+                            <span class="font-extrabold text-sm text-slate-800">{{ s.weekly_periods|floatformat:"-1" }}</span>
                             <span class="text-[10px] text-slate-400 block">periods/wk</span>
                             {% if s.consecutive_periods > 1 %}
                             <span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
@@ -115,9 +115,14 @@
                             </span>
                         </td>
                         <td class="py-3 px-4 text-center">
-                            <button onclick="deleteSubject({{ s.id }}, '{{ s.code }}')" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" title="Delete Subject">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
+                            <div class="flex items-center justify-center space-x-1">
+                                <button onclick="openEditSubjectModal({{ s.id }}, '{{ s.code|escapejs }}', '{{ s.title|escapejs }}', {{ s.grade_level }}, '{{ s.cluster|escapejs }}', '{{ s.room_type_needed|escapejs }}', {{ s.weekly_periods }}, {{ s.consecutive_periods }}, {{ s.is_lab|yesno:'true,false' }})" class="p-1.5 text-slate-400 hover:text-deped-blue hover:bg-blue-50 rounded-lg transition" title="Edit Subject">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteSubject({{ s.id }}, '{{ s.code }}')" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" title="Delete Subject">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -191,7 +196,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Weekly Periods (Hours) *</label>
-                    <input type="number" id="sWeeklyPeriods" value="4" min="1" max="10" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    <input type="number" id="sWeeklyPeriods" value="4" min="0.5" max="30" step="any" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
                 </div>
                 <div>
                     <div class="flex items-center justify-between mb-1">
@@ -221,6 +226,89 @@
             <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
                 <button type="button" onclick="closeAddSubjectModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
                 <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold shadow transition">Save Subject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Subject Modal -->
+<div id="editSubjectModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-gradient-to-r from-deped-darkblue to-deped-blue p-4 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-pen-to-square text-deped-gold text-lg"></i>
+                <div>
+                    <h3 class="font-heading font-bold text-base">Edit Subject</h3>
+                    <p class="text-[11px] text-blue-200">Modify curriculum subject details & periods</p>
+                </div>
+            </div>
+            <button onclick="closeEditSubjectModal()" class="text-white/70 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="editSubjectForm" onsubmit="submitEditSubject(event)" class="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+            <input type="hidden" id="editSubjectId">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Subject Code *</label>
+                    <input type="text" id="editSCode" required placeholder="e.g. SCI-G8, PRECALC-11" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold uppercase outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Grade Level *</label>
+                    <select id="editSGrade" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="7">Grade 7 (JHS)</option>
+                        <option value="8">Grade 8 (JHS)</option>
+                        <option value="9">Grade 9 (JHS)</option>
+                        <option value="10">Grade 10 (JHS)</option>
+                        <option value="11">Grade 11 (SSHS)</option>
+                        <option value="12">Grade 12 (SSHS)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Subject Title *</label>
+                <input type="text" id="editSTitle" required placeholder="e.g. General Science" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Curriculum Cluster *</label>
+                <select id="editSCluster" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    {% for c_val, c_label in clusters %}
+                    <option value="{{ c_val }}">{{ c_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Weekly Periods (Hours) *</label>
+                    <input type="number" id="editSWeeklyPeriods" min="0.5" max="30" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Facility Required *</label>
+                    <select id="editSRoomType" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        {% for r_val, r_label in room_types %}
+                        <option value="{{ r_val }}">{{ r_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <label class="flex items-center space-x-2.5 cursor-pointer">
+                    <input type="checkbox" id="editSIsDoublePeriod" class="rounded text-deped-blue focus:ring-deped-blue">
+                    <span class="font-bold text-slate-800">Double-Period Block (2 Consecutive Hours)</span>
+                </label>
+                <p class="text-[11px] text-slate-500 pl-6">
+                    Check this for Science Laboratory experiments, Computer programming, or TVL workshops that must be scheduled in 2-hour continuous blocks.
+                </p>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
+                <button type="button" onclick="closeEditSubjectModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold shadow transition">Save Changes</button>
             </div>
         </form>
     </div>
@@ -343,6 +431,66 @@
             }
         } catch (err) {
             showToast('Network error while registering subject', true);
+        }
+    }
+
+    function openEditSubjectModal(id, code, title, grade, cluster, roomType, weeklyPeriods, consecutive, isLab) {
+        document.getElementById('editSubjectId').value = id;
+        document.getElementById('editSCode').value = code;
+        document.getElementById('editSTitle').value = title;
+        document.getElementById('editSGrade').value = grade;
+        document.getElementById('editSCluster').value = cluster;
+        document.getElementById('editSWeeklyPeriods').value = weeklyPeriods;
+        document.getElementById('editSRoomType').value = roomType;
+        document.getElementById('editSIsDoublePeriod').checked = (consecutive > 1);
+
+        const modal = document.getElementById('editSubjectModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeEditSubjectModal() {
+        const modal = document.getElementById('editSubjectModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function submitEditSubject(e) {
+        e.preventDefault();
+        const id = document.getElementById('editSubjectId').value;
+        const code = document.getElementById('editSCode').value.trim();
+        const title = document.getElementById('editSTitle').value.trim();
+        const grade = document.getElementById('editSGrade').value;
+        const cluster = document.getElementById('editSCluster').value;
+        const weekly = document.getElementById('editSWeeklyPeriods').value;
+        const roomType = document.getElementById('editSRoomType').value;
+        const isDouble = document.getElementById('editSIsDoublePeriod').checked;
+
+        const formData = new FormData();
+        formData.append('code', code);
+        formData.append('title', title);
+        formData.append('grade_level', grade);
+        formData.append('cluster', cluster);
+        formData.append('weekly_periods', weekly);
+        formData.append('room_type_needed', roomType);
+        formData.append('consecutive_periods', isDouble ? 2 : 1);
+        formData.append('is_lab', isDouble || roomType !== 'lecture');
+
+        try {
+            const res = await fetch(`/api/subjects/update/${id}/`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                closeEditSubjectModal();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showToast(data.message || 'Error updating subject', true);
+            }
+        } catch (err) {
+            showToast('Network error while updating subject', true);
         }
     }
 

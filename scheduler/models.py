@@ -143,7 +143,7 @@ class Subject(models.Model):
     cluster = models.CharField(max_length=60, default='jhs_core')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
     room_type_needed = models.CharField(max_length=60, default='lecture')
-    weekly_periods = models.IntegerField(default=4, help_text="Number of 1-hour periods per week")
+    weekly_periods = models.FloatField(default=4.0, help_text="Number of 1-hour periods per week (supports decimals like 1.5, 4.5)")
     consecutive_periods = models.IntegerField(default=1, help_text="1 for standard, 2 for double-period lab/workshop")
     is_lab = models.BooleanField(default=False)
 
@@ -188,8 +188,8 @@ class Teacher(models.Model):
     email = models.EmailField(blank=True, default='')
     curriculum_level = models.CharField(max_length=20, choices=CURRICULUM_LEVEL_CHOICES, default='both')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='teachers')
-    max_daily_hours = models.IntegerField(default=6, help_text="DepEd DO 005 s. 2024 (max 6h actual teaching)")
-    max_weekly_hours = models.IntegerField(default=30)
+    max_daily_hours = models.FloatField(default=6.0, help_text="DepEd DO 005 s. 2024 (max 6h actual teaching)")
+    max_weekly_hours = models.FloatField(default=30.0)
     preferred_vacant_period = models.IntegerField(null=True, blank=True, help_text="Preferred vacant period (1-8)")
     is_active = models.BooleanField(default=True)
 
@@ -356,9 +356,9 @@ class SchoolProfile(models.Model):
     active_term = models.ForeignKey('Term', on_delete=models.SET_NULL, null=True, blank=True)
 
     # Workload Policy Limits (DepEd DO 005 s. 2024 / RA 4670)
-    max_daily_teaching_hours = models.IntegerField(default=6, help_text="Max actual classroom teaching hours per day")
-    max_weekly_teaching_hours = models.IntegerField(default=30, help_text="Max actual classroom teaching hours per week")
-    standard_workweek_hours = models.IntegerField(default=40, help_text="Total official weekly work hours")
+    max_daily_teaching_hours = models.FloatField(default=6.0, help_text="Max actual classroom teaching hours per day")
+    max_weekly_teaching_hours = models.FloatField(default=30.0, help_text="Max actual classroom teaching hours per week")
+    standard_workweek_hours = models.FloatField(default=40.0, help_text="Total official weekly work hours")
 
     updated_at = models.DateTimeField(auto_now=True)
 

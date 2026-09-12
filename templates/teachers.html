@@ -137,7 +137,7 @@
                             <div class="space-y-1">
                                 {% for duty in t.duties_list %}
                                 <div class="inline-flex items-center justify-between px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold mr-1 mb-0.5" id="ancillary-badge-{{ duty.id }}">
-                                    <span>{{ duty.title }} ({{ duty.weekly_hours|floatformat:1 }}h)</span>
+                                    <span>{{ duty.title }} ({{ duty.weekly_hours|floatformat:0 }}h)</span>
                                     <button onclick="deleteAncillary({{ duty.id }}, '{{ duty.title|escapejs }}')" class="ml-1.5 text-amber-600 hover:text-red-600" title="Remove designation">
                                         <i class="fa-solid fa-xmark text-[9px]"></i>
                                     </button>
@@ -157,7 +157,7 @@
                             <div class="space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="font-extrabold text-sm {% if t.is_overload %}text-red-600{% else %}text-slate-800{% endif %}">
-                                        {{ t.total_workload|floatformat:1 }}h
+                                        {{ t.total_workload|floatformat:0 }}h
                                     </span>
                                     <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded {% if t.is_overload %}bg-red-100 text-red-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
                                         {% if t.is_overload %}Overload{% else %}Compliant{% endif %}
@@ -167,7 +167,7 @@
                                     <div class="{% if t.is_overload %}bg-red-500{% else %}bg-gradient-to-r from-blue-500 to-emerald-500{% endif %} h-1.5 rounded-full" style="width: {% widthratio t.total_workload 40 100 %}%;"></div>
                                 </div>
                                 <span class="text-[9px] text-slate-400 block leading-tight">
-                                    Teach: {{ t.teaching_hours }}h &bull; Ancillary: {{ t.ancillary_hours|floatformat:1 }}h / 40h
+                                    Teach: {{ t.teaching_hours }}h &bull; Ancillary: {{ t.ancillary_hours|floatformat:0 }}h / 40h
                                 </span>
                             </div>
                         </td>
@@ -188,6 +188,9 @@
                         <!-- Col 6: Actions -->
                         <td class="py-3.5 px-4 text-center align-top">
                             <div class="flex items-center justify-center space-x-1">
+                                <button onclick="openEditTeacherModal({{ t.id }}, '{{ t.first_name|escapejs }}', '{{ t.last_name|escapejs }}', '{{ t.employee_id|escapejs }}', '{{ t.curriculum_level|escapejs }}', '{{ t.department.id|default:'' }}', '{{ t.email|escapejs }}', {{ t.max_daily_hours }}, '{{ t.preferred_vacant_period|default:'' }}', [{% for q in t.qualifications.all %}{{ q.subject.id }}{% if not forloop.last %},{% endif %}{% endfor %}])" class="p-1.5 text-slate-400 hover:text-deped-blue hover:bg-blue-50 rounded-lg transition" title="Edit Faculty Profile">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
                                 <a href="{% url 'print_teacher_program' t.id %}" target="_blank" class="p-1.5 text-blue-600 hover:text-deped-darkblue hover:bg-blue-50 rounded-lg transition" title="Print DepEd Teacher's Program (Official Form)">
                                     <i class="fa-solid fa-file-invoice"></i>
                                 </a>
@@ -322,6 +325,111 @@
     </div>
 </div>
 
+<!-- Modal: Edit Teacher -->
+<div id="editTeacherModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-gradient-to-r from-deped-darkblue to-deped-blue p-4 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-pen-to-square text-deped-gold text-lg"></i>
+                <div>
+                    <h3 class="font-heading font-bold text-base">Edit Faculty Member</h3>
+                    <p class="text-[11px] text-blue-200">Update teacher details & subject qualifications</p>
+                </div>
+            </div>
+            <button onclick="closeEditTeacherModal()" class="text-white/70 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="editTeacherForm" onsubmit="submitEditTeacher(event)" class="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+            <input type="hidden" id="editTeacherId">
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">First Name *</label>
+                    <input type="text" id="editTFirstName" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Last Name *</label>
+                    <input type="text" id="editTLastName" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Employee ID / Plantilla *</label>
+                    <input type="text" id="editTEmployeeId" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Curriculum Level *</label>
+                    <select id="editTCurriculumLevel" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="both">Both JHS & SHS (Integrated)</option>
+                        <option value="jhs">Junior High School (JHS)</option>
+                        <option value="shs">Senior High School (SHS)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">DepEd Email (Optional)</label>
+                <input type="email" id="editTEmail" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Max Daily Teaching Hours</label>
+                    <input type="number" id="editTMaxDaily" value="6" min="1" max="8" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                    <span class="text-[10px] text-slate-400">DepEd Magna Carta standard: 6h</span>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Preferred Vacant Time</label>
+                    <select id="editTPrefVacant" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                        <option value="">No Preference / Flexible</option>
+                        {% for grade_lbl, slots in grouped_timeframes.items %}
+                        <optgroup label="{{ grade_lbl }} Schedule">
+                            {% for tf in slots %}
+                            <option value="{{ tf.period_number }}">
+                                Period {{ tf.period_number }}: {{ tf.start_time|time:"g:i A" }} – {{ tf.end_time|time:"g:i A" }} ({{ tf.label }})
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% empty %}
+                        {% for tf in timeframes %}
+                        <option value="{{ tf.period_number }}">
+                            {{ tf.start_time|time:"g:i A" }} - {{ tf.end_time|time:"g:i A" }} (Period {{ tf.period_number }})
+                        </option>
+                        {% endfor %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Subject Qualifications Checkbox Picker -->
+            <div class="pt-2 border-t border-slate-100 space-y-1.5">
+                <label class="block font-bold text-slate-700 uppercase text-[11px]">
+                    Qualified Subjects (Select all that apply)
+                </label>
+                <p class="text-[11px] text-slate-400">The Genetic Algorithm will ONLY assign this teacher to checked subjects.</p>
+
+                <div class="max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-2.5 space-y-1 bg-slate-50">
+                    {% for s in subjects %}
+                    <label class="flex items-center space-x-2 text-[11px] hover:bg-white p-1 rounded cursor-pointer transition">
+                        <input type="checkbox" name="edit_subject_ids" value="{{ s.id }}" class="rounded text-deped-blue focus:ring-deped-blue">
+                        <span class="font-bold text-slate-800">{{ s.code }}</span>
+                        <span class="text-slate-600 truncate">&bull; {{ s.title }} (G{{ s.grade_level }})</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-3 border-t border-slate-100 shrink-0">
+                <button type="button" onclick="closeEditTeacherModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold shadow transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: Add Ancillary / Special Designation -->
 <div id="ancillaryModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-100 overflow-hidden">
@@ -358,7 +466,7 @@
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Credited Hours / Week (DO 005 s. 2024)</label>
-                <input type="number" id="ancillaryHours" value="2.0" step="0.5" min="0.5" max="20" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                <input type="number" id="ancillaryHours" value="2" step="1" min="1" max="20" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
                 <span class="text-[10px] text-slate-400">Credited toward 40-hour weekly official workload</span>
             </div>
 
@@ -473,6 +581,72 @@
         }
     }
 
+    function openEditTeacherModal(id, firstName, lastName, empId, currLevel, deptId, email, maxDaily, prefVacant, qualIds) {
+        document.getElementById('editTeacherId').value = id;
+        document.getElementById('editTFirstName').value = firstName;
+        document.getElementById('editTLastName').value = lastName;
+        document.getElementById('editTEmployeeId').value = empId;
+        document.getElementById('editTCurriculumLevel').value = currLevel || 'both';
+        document.getElementById('editTEmail').value = email || '';
+        document.getElementById('editTMaxDaily').value = maxDaily || 6;
+        document.getElementById('editTPrefVacant').value = prefVacant || '';
+
+        const checkboxes = document.querySelectorAll('input[name="edit_subject_ids"]');
+        checkboxes.forEach(cb => {
+            cb.checked = qualIds.includes(parseInt(cb.value));
+        });
+
+        const modal = document.getElementById('editTeacherModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeEditTeacherModal() {
+        const modal = document.getElementById('editTeacherModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function submitEditTeacher(e) {
+        e.preventDefault();
+        const id = document.getElementById('editTeacherId').value;
+        const firstName = document.getElementById('editTFirstName').value;
+        const lastName = document.getElementById('editTLastName').value;
+        const employeeId = document.getElementById('editTEmployeeId').value;
+        const curriculumLevel = document.getElementById('editTCurriculumLevel').value;
+        const email = document.getElementById('editTEmail').value;
+        const maxDaily = document.getElementById('editTMaxDaily').value;
+        const prefVacant = document.getElementById('editTPrefVacant').value;
+
+        const checkboxes = document.querySelectorAll('input[name="edit_subject_ids"]:checked');
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('employee_id', employeeId);
+        formData.append('curriculum_level', curriculumLevel);
+        formData.append('email', email);
+        formData.append('max_daily_hours', maxDaily);
+        formData.append('preferred_vacant_period', prefVacant);
+        checkboxes.forEach(cb => formData.append('subject_ids', cb.value));
+
+        try {
+            const res = await fetch(`/api/teachers/update/${id}/`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                closeEditTeacherModal();
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                showToast(data.message || 'Error updating teacher', true);
+            }
+        } catch (err) {
+            showToast('Network error while updating teacher', true);
+        }
+    }
+
     async function deleteTeacher(teacherId, teacherName) {
         if (!confirm(`Are you sure you want to remove ${teacherName}?`)) return;
 
@@ -498,7 +672,7 @@
         document.getElementById('ancillaryTeacherSubtitle').textContent = `Assigning to ${teacherName}`;
         document.getElementById('ancillaryPreset').value = 'custom';
         document.getElementById('ancillaryTitle').value = '';
-        document.getElementById('ancillaryHours').value = '2.0';
+        document.getElementById('ancillaryHours').value = '2';
         document.getElementById('ancillaryDesc').value = '';
 
         const modal = document.getElementById('ancillaryModal');
@@ -522,13 +696,13 @@
         if (val !== 'custom') {
             titleInput.value = selected.getAttribute('data-label') || selected.textContent;
             if (val === 'adviser' || val === 'drrm_coordinator') {
-                hoursInput.value = '2.0';
+                hoursInput.value = '2';
             } else if (val === 'ict_coordinator') {
-                hoursInput.value = '4.0';
+                hoursInput.value = '4';
             } else if (val === 'dept_coordinator') {
-                hoursInput.value = '3.0';
+                hoursInput.value = '3';
             } else {
-                hoursInput.value = '2.0';
+                hoursInput.value = '2';
             }
         }
     }

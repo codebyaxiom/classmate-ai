@@ -69,7 +69,7 @@ class GeneticTimetableScheduler:
         for req in SectionSubjectRequirement.objects.filter(section__in=self.sections).select_related('section', 'subject'):
             if req.assigned_teacher_id:
                 self.locked_assigned_teachers[(req.section_id, req.subject_id)] = req.assigned_teacher_id
-            for _ in range(req.subject.weekly_periods):
+            for _ in range(int(round(req.subject.weekly_periods))):
                 self.section_requirements[req.section_id].append({
                     'section_id': req.section_id,
                     'subject_id': req.subject_id,
