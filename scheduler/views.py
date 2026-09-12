@@ -14,7 +14,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .models import (
     AcademicYear, Term, Department, Room, Subject, Teacher, TeacherQualification,
     Section, TimeSlot, SectionSubjectRequirement, Schedule, ScheduleItem, AuditLog,
-    AncillaryDuty
+    AncillaryDuty, SchoolProfile, CurriculumCluster
 )
 from .engine.genetic_scheduler import GeneticTimetableScheduler
 
@@ -444,6 +444,7 @@ def print_sf7_view(request, teacher_id=None):
         'ancillary_hours': ancillary_hours,
         'total_workload': total_workload,
         'prep_hours': prep_hours,
+        'profile': SchoolProfile.get_settings(),
     }
     return render(request, 'print_sf7.html', context)
 
@@ -592,7 +593,7 @@ def subjects_view(request):
         'grade_filter': grade_filter,
         'cluster_filter': cluster_filter,
         'search_query': search_query,
-        'clusters': Subject.CLUSTER_CHOICES,
+        'clusters': CurriculumCluster.get_all_choices(),
         'room_types': Room.ROOM_TYPES,
     }
     return render(request, 'subjects.html', context)
@@ -630,7 +631,7 @@ def add_subject_api(request):
 
     AuditLog.objects.create(
         action="Subject Registered",
-        details=f"Added subject {subj.code} — {subj.title} (Grade {subj.grade_level}, {subj.get_cluster_display()})."
+        details=f"Added subject {subj.code} — {subj.title} (Grade {subj.grade_level}, {subj.cluster_display_name})."
     )
 
     return JsonResponse({
@@ -747,7 +748,7 @@ def sections_view(request):
     rooms = Room.objects.filter(is_active=True).order_by('name')
     teachers = Teacher.objects.filter(is_active=True).order_by('last_name', 'first_name')
     subjects = Subject.objects.all().order_by('grade_level', 'code')
-    clusters = Subject.CLUSTER_CHOICES
+    clusters = CurriculumCluster.get_all_choices()
     grades = Subject.GRADE_CHOICES
 
     context = {
@@ -1010,3 +1011,532 @@ def delete_ancillary_duty_api(request, duty_id):
         'message': f"Designation '{title}' removed from {teacher_name}."
     })
 
+
+
+def timeframes_view(request):
+    try:
+        selected_grade = int(request.GET.get('grade', 0))
+    except (ValueError, TypeError):
+        selected_grade = 0
+
+    grade_choices = TimeSlot.TIMEFRAME_GRADE_CHOICES
+
+    # Group counts of slots by grade level
+    slot_counts = {}
+    for g_val, _ in grade_choices:
+        slot_counts[g_val] = TimeSlot.objects.filter(grade_level=g_val, day_of_week=1).count()
+
+    # Get Monday slots as the canonical period definitions for this grade level
+    periods = TimeSlot.objects.filter(grade_level=selected_grade, day_of_week=1).order_by('period_number')
+
+    context = {
+        'selected_grade': selected_grade,
+        'grade_choices': grade_choices,
+        'slot_counts': slot_counts,
+        'periods': periods,
+        'profile': SchoolProfile.get_settings(),
+    }
+    return render(request, 'timeframes.html', context)
+
+
+@csrf_exempt
+def add_timeframe_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    try:
+        grade_level = int(request.POST.get('grade_level', 0))
+        label = request.POST.get('label', '').strip()
+        start_time_str = request.POST.get('start_time', '').strip()
+        end_time_str = request.POST.get('end_time', '').strip()
+        is_break = request.POST.get('is_break') in ['true', 'True', '1', 1, True]
+
+        if not label or not start_time_str or not end_time_str:
+            return JsonResponse({'success': False, 'message': 'Label, start time, and end time are required.'})
+
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+
+        period_number = request.POST.get('period_number')
+        if period_number:
+            period_number = int(period_number)
+        else:
+            existing = TimeSlot.objects.filter(grade_level=grade_level, day_of_week=1).order_by('-period_number').first()
+            period_number = (existing.period_number + 1) if existing else 1
+
+        for day in range(1, 6):
+            TimeSlot.objects.update_or_create(
+                day_of_week=day,
+                period_number=period_number,
+                grade_level=grade_level,
+                defaults={
+                    'label': label,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'is_break': is_break,
+                }
+            )
+
+        AuditLog.objects.create(
+            action="Timeframe Period Established",
+            details=f"P{period_number} '{label}' ({start_time_str}-{end_time_str}) configured for Grade {grade_level} across Mon-Fri."
+        )
+
+        return JsonResponse({'success': True, 'message': f"Period P{period_number} ({label}) established successfully!"})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+
+@csrf_exempt
+def delete_timeframe_api(request, period_number):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    try:
+        grade_level = int(request.POST.get('grade_level', 0))
+        deleted_count, _ = TimeSlot.objects.filter(period_number=period_number, grade_level=grade_level).delete()
+
+        AuditLog.objects.create(
+            action="Timeframe Period Deleted",
+            details=f"Deleted P{period_number} for Grade {grade_level} ({deleted_count} slots removed)."
+        )
+
+        return JsonResponse({'success': True, 'message': f"Period P{period_number} removed."})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+
+@csrf_exempt
+def apply_preset_timeframes_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    preset_type = request.POST.get('preset_type', 'shs_sample')
+    try:
+        grade_level = int(request.POST.get('grade_level', 11))
+    except (ValueError, TypeError):
+        grade_level = 11
+
+    # Clear existing periods for this grade level
+    TimeSlot.objects.filter(grade_level=grade_level).delete()
+
+    if preset_type == 'shs_sample':
+        schedule_def = [
+            (1, "Flag Ceremony", "07:00", "07:30", True),
+            (2, "Period 1", "07:30", "08:30", False),
+            (3, "Period 2", "08:30", "09:30", False),
+            (4, "Morning Recess", "09:30", "09:45", True),
+            (5, "Period 3", "09:45", "10:45", False),
+            (6, "Period 4", "10:45", "11:45", False),
+            (7, "Noon Break", "11:45", "13:00", True),
+            (8, "Period 5 (Lab / Block)", "13:00", "14:30", False),
+            (9, "Homeroom Guidance / Remediation", "14:30", "15:00", False),
+            (10, "Period 6", "15:00", "16:00", False),
+        ]
+        label_preset = "Strengthened SHS Trimester Bell Schedule"
+    else:
+        schedule_def = [
+            (1, "Flag Ceremony", "07:15", "07:45", True),
+            (2, "Period 1", "07:45", "08:45", False),
+            (3, "Period 2", "08:45", "09:45", False),
+            (4, "Morning Recess", "09:45", "10:00", True),
+            (5, "Period 3", "10:00", "11:00", False),
+            (6, "Period 4", "11:00", "12:00", False),
+            (7, "Noon Break", "12:00", "13:00", True),
+            (8, "Period 5", "13:00", "14:00", False),
+            (9, "Period 6", "14:00", "15:00", False),
+            (10, "Homeroom / Remediation", "15:00", "16:00", False),
+        ]
+        label_preset = "Standard JHS Bell Schedule"
+
+    for p_num, lbl, s_str, e_str, is_brk in schedule_def:
+        s_time = datetime.strptime(s_str, '%H:%M').time()
+        e_time = datetime.strptime(e_str, '%H:%M').time()
+        for day in range(1, 6):
+            TimeSlot.objects.create(
+                day_of_week=day,
+                period_number=p_num,
+                grade_level=grade_level,
+                label=lbl,
+                start_time=s_time,
+                end_time=e_time,
+                is_break=is_brk
+            )
+
+    AuditLog.objects.create(
+        action="Applied Bell Schedule Preset",
+        details=f"Loaded '{label_preset}' for Grade {grade_level} (10 periods)."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f"Successfully applied '{label_preset}' to Grade {grade_level}!"
+    })
+
+
+def settings_view(request):
+    profile = SchoolProfile.get_settings()
+    rooms = Room.objects.all().order_by('building', 'name')
+    clusters = CurriculumCluster.objects.all().order_by('curriculum_level', 'name')
+    context = {
+        'profile': profile,
+        'rooms': rooms,
+        'room_types': Room.ROOM_TYPES,
+        'clusters': clusters,
+        'cluster_levels': CurriculumCluster.LEVEL_CHOICES,
+    }
+    return render(request, 'settings.html', context)
+
+
+@csrf_exempt
+def add_cluster_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    code = request.POST.get('code', '').strip().lower().replace(' ', '_').replace('-', '_')
+    curriculum_level = request.POST.get('curriculum_level', 'shs').strip()
+    description = request.POST.get('description', '').strip()
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Cluster name is required.'})
+
+    if not code:
+        code = name.lower().replace(' ', '_').replace('-', '_')
+
+    if CurriculumCluster.objects.filter(code=code).exists():
+        return JsonResponse({'success': False, 'message': f'Cluster with code "{code}" already exists.'})
+
+    cluster = CurriculumCluster.objects.create(
+        code=code,
+        name=name,
+        curriculum_level=curriculum_level,
+        description=description,
+        is_active=True
+    )
+
+    AuditLog.objects.create(
+        action="Curriculum Cluster Established",
+        details=f"Created cluster '{cluster.name}' ({cluster.code}) for {cluster.get_curriculum_level_display()}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Curriculum Cluster "{cluster.name}" established successfully!',
+        'cluster_id': cluster.id,
+        'cluster_code': cluster.code,
+        'cluster_name': cluster.name,
+    })
+
+
+@csrf_exempt
+def delete_cluster_api(request, cluster_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    cluster = get_object_or_404(CurriculumCluster, id=cluster_id)
+    name = cluster.name
+    cluster.delete()
+
+    AuditLog.objects.create(
+        action="Curriculum Cluster Deleted",
+        details=f"Removed curriculum cluster '{name}' from configuration."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Curriculum Cluster "{name}" deleted successfully!'
+    })
+
+
+@csrf_exempt
+def add_room_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    name = request.POST.get('name', '').strip()
+    room_type = request.POST.get('room_type', 'lecture').strip()
+    building = request.POST.get('building', '').strip()
+    try:
+        capacity = int(request.POST.get('capacity', 45))
+    except (ValueError, TypeError):
+        capacity = 45
+
+    if not name:
+        return JsonResponse({'success': False, 'message': 'Classroom / Room name is required.'})
+
+    if Room.objects.filter(name__iexact=name).exists():
+        return JsonResponse({'success': False, 'message': f'Classroom "{name}" already exists.'})
+
+    room = Room.objects.create(
+        name=name,
+        room_type=room_type,
+        building=building,
+        capacity=capacity,
+        is_active=True
+    )
+
+    AuditLog.objects.create(
+        action="Classroom Established",
+        details=f"Added room '{room.name}' ({room.get_room_type_display()}, Capacity: {capacity}) in {building}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Classroom "{room.name}" created successfully!',
+        'room_id': room.id,
+        'room_name': room.name,
+    })
+
+
+@csrf_exempt
+def delete_room_api(request, room_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    room = get_object_or_404(Room, id=room_id)
+    name = room.name
+    room.delete()
+
+    AuditLog.objects.create(
+        action="Classroom Deleted",
+        details=f"Removed classroom '{name}' from inventory."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Classroom "{name}" removed successfully!'
+    })
+
+
+@csrf_exempt
+def update_settings_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    profile = SchoolProfile.get_settings()
+    profile.school_name = request.POST.get('school_name', profile.school_name).strip()
+    profile.school_id = request.POST.get('school_id', profile.school_id).strip()
+    profile.region = request.POST.get('region', profile.region).strip()
+    profile.division = request.POST.get('division', profile.division).strip()
+    profile.district = request.POST.get('district', profile.district).strip()
+
+    profile.prepared_by_name = request.POST.get('prepared_by_name', profile.prepared_by_name).strip()
+    profile.prepared_by_title = request.POST.get('prepared_by_title', profile.prepared_by_title).strip()
+
+    profile.reviewed_by_name = request.POST.get('reviewed_by_name', profile.reviewed_by_name).strip()
+    profile.reviewed_by_title = request.POST.get('reviewed_by_title', profile.reviewed_by_title).strip()
+
+    profile.verified_by_name = request.POST.get('verified_by_name', profile.verified_by_name).strip()
+    profile.verified_by_title = request.POST.get('verified_by_title', profile.verified_by_title).strip()
+
+    profile.recommending_name = request.POST.get('recommending_name', profile.recommending_name).strip()
+    profile.recommending_title = request.POST.get('recommending_title', profile.recommending_title).strip()
+
+    profile.approved_by_name = request.POST.get('approved_by_name', profile.approved_by_name).strip()
+    profile.approved_by_title = request.POST.get('approved_by_title', profile.approved_by_title).strip()
+
+    profile.save()
+
+    AuditLog.objects.create(
+        action="Institutional Profile & Signatories Updated",
+        details=f"Updated settings for {profile.school_name}."
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': 'School profile and official signatories successfully updated!'
+    })
+
+
+@csrf_exempt
+def reset_settings_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    profile = SchoolProfile.get_settings()
+    profile.school_name = "ISABELA NATIONAL HIGH SCHOOL"
+    profile.school_id = "300582"
+    profile.region = "REGION II – CAGAYAN VALLEY"
+    profile.division = "SCHOOLS DIVISION OF ISABELA"
+    profile.district = "District II"
+
+    profile.prepared_by_name = "VILMA L. VILLADOR, PhD"
+    profile.prepared_by_title = "Principal II"
+
+    profile.reviewed_by_name = "JOVITO M. CADIZ, PhD"
+    profile.reviewed_by_title = "Principal IV, District-in-Charge"
+
+    profile.verified_by_name = "MARIETESS B. BAQUIRAN, PhD"
+    profile.verified_by_title = "Chief, Curriculum Instruction Division"
+
+    profile.recommending_name = "MARY JULIE A. TRUS, PhD, CESO VI"
+    profile.recommending_title = "Assistant Schools Division Superintendent"
+
+    profile.approved_by_name = "RACHEL R. LLANA, PhD, CESO V"
+    profile.approved_by_title = "Schools Division Superintendent"
+
+    profile.save()
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Reset signatories and header to official DepEd Region II defaults.'
+    })
+
+
+def print_classroom_program_view(request, section_id):
+    section = get_object_or_404(Section, id=section_id)
+    schedule = Schedule.objects.order_by('-updated_at').first()
+    profile = SchoolProfile.get_settings()
+
+    # Get slots specifically for this section's grade level, fallback to universal
+    slots = TimeSlot.objects.filter(grade_level=section.grade_level)
+    if not slots.exists():
+        slots = TimeSlot.objects.filter(grade_level=0)
+
+    # Distinct canonical periods (using Monday day 1)
+    canonical_periods = slots.filter(day_of_week=1).order_by('period_number')
+    if not canonical_periods.exists():
+        canonical_periods = TimeSlot.objects.filter(day_of_week=1).order_by('period_number')
+
+    # Query schedule items for this section
+    schedule_items = {}
+    if schedule:
+        for item in ScheduleItem.objects.filter(schedule=schedule, section=section).select_related('subject', 'teacher', 'time_slot'):
+            schedule_items[(item.time_slot.day_of_week, item.time_slot.period_number)] = item
+
+    rows = []
+    for cp in canonical_periods:
+        days_cells = []
+        for day in range(1, 6):
+            ts = slots.filter(day_of_week=day, period_number=cp.period_number).first() or cp
+            if ts.is_break:
+                days_cells.append({
+                    'type': 'break',
+                    'label': ts.label
+                })
+            else:
+                item = schedule_items.get((day, cp.period_number))
+                if item:
+                    t_initial = f"{item.teacher.first_name[0]}. {item.teacher.last_name.upper()}" if item.teacher.first_name else item.teacher.last_name.upper()
+                    days_cells.append({
+                        'type': 'subject',
+                        'subject_code': item.subject.code,
+                        'subject_title': item.subject.title.upper(),
+                        'teacher_name': t_initial
+                    })
+                else:
+                    label = "REMEDIATION / STUDY" if cp.period_number >= 8 else "STUDY PERIOD"
+                    days_cells.append({
+                        'type': 'vacant',
+                        'label': label
+                    })
+
+        is_uniform_break = cp.is_break
+        break_label = cp.label if cp.is_break else ""
+
+        rows.append({
+            'period_number': cp.period_number,
+            'time_range': f"{cp.start_time.strftime('%I:%M').lstrip('0')}-{cp.end_time.strftime('%I:%M').lstrip('0')}",
+            'is_break': is_uniform_break,
+            'break_label': break_label,
+            'days': days_cells,
+        })
+
+    adviser_name = section.adviser.full_name.upper() if section.adviser else "UNASSIGNED"
+
+    context = {
+        'section': section,
+        'schedule': schedule,
+        'profile': profile,
+        'adviser_name': adviser_name,
+        'rows': rows,
+    }
+    return render(request, 'print_classroom_program.html', context)
+
+
+def print_teacher_program_view(request, teacher_id):
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    schedule = Schedule.objects.order_by('-updated_at').first()
+    profile = SchoolProfile.get_settings()
+
+    advised_sec = teacher.advised_sections.first()
+    adviser_tag = advised_sec.name.upper() if advised_sec else "N/A"
+
+    duties = list(teacher.ancillary_duties.all())
+    ancillary_title = duties[0].title.upper() if duties else ""
+
+    teacher_items = ScheduleItem.objects.filter(schedule=schedule, teacher=teacher).select_related('subject', 'section', 'time_slot') if schedule else []
+    
+    teaches_shs = any(it.section.grade_level in [11, 12] for it in teacher_items) or teacher.curriculum_level in ['shs', 'both']
+    preferred_grade = 11 if teaches_shs else 7
+
+    slots = TimeSlot.objects.filter(grade_level=preferred_grade)
+    if not slots.exists():
+        slots = TimeSlot.objects.filter(grade_level=0)
+    
+    canonical_periods = slots.filter(day_of_week=1).order_by('period_number')
+    if not canonical_periods.exists():
+        canonical_periods = TimeSlot.objects.filter(day_of_week=1).order_by('period_number')
+
+    item_map = {}
+    for it in teacher_items:
+        item_map[(it.time_slot.day_of_week, it.time_slot.period_number)] = it
+
+    rows = []
+    for cp in canonical_periods:
+        duration = cp.duration_minutes
+        days_cells = []
+        for day in range(1, 6):
+            ts = slots.filter(day_of_week=day, period_number=cp.period_number).first() or cp
+            if ts.is_break:
+                days_cells.append({
+                    'type': 'break',
+                    'label': ts.label
+                })
+            else:
+                it = item_map.get((day, cp.period_number))
+                if it:
+                    days_cells.append({
+                        'type': 'class',
+                        'subject_title': it.subject.title.upper(),
+                        'section_name': it.section.name,
+                    })
+                elif advised_sec and cp.period_number == 9 and (day in [1, 5]):
+                    days_cells.append({
+                        'type': 'homeroom',
+                        'subject_title': 'HOMEROOM GUIDANCE',
+                        'section_name': advised_sec.name,
+                    })
+                else:
+                    days_cells.append({
+                        'type': 'prep',
+                        'subject_title': 'Preparation of Instructional Materials / Lesson Planning / Recording of Formative Assessment',
+                        'section_name': '',
+                    })
+
+        rows.append({
+            'period_number': cp.period_number,
+            'time_range': f"{cp.start_time.strftime('%I:%M').lstrip('0')}-{cp.end_time.strftime('%I:%M').lstrip('0')}",
+            'duration_minutes': duration,
+            'is_break': cp.is_break,
+            'break_label': cp.label if cp.is_break else "",
+            'days': days_cells,
+        })
+
+    major = "MATHEMATICS"
+    quals = teacher.qualifications.select_related('subject')
+    if quals.exists():
+        major = quals.first().subject.cluster.replace('_', ' ').upper()
+
+    context = {
+        'teacher': teacher,
+        'major': major,
+        'adviser_tag': adviser_tag,
+        'ancillary_title': ancillary_title,
+        'schedule': schedule,
+        'profile': profile,
+        'rows': rows,
+    }
+    return render(request, 'print_teacher_program.html', context)

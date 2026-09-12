@@ -27,7 +27,26 @@ urlpatterns = [
     path('api/subjects/add/', views.add_subject_api, name='api_add_subject'),
     path('api/subjects/delete/<int:subject_id>/', views.delete_subject_api, name='api_delete_subject'),
     path('api/timeslots/add/', views.add_timeslot_api, name='api_add_timeslot'),
-    
+
+    # Timeframes & Bell Schedules Desk
+    path('timeframes/', views.timeframes_view, name='timeframes'),
+    path('api/timeframes/add/', views.add_timeframe_api, name='api_add_timeframe'),
+    path('api/timeframes/delete/<int:period_number>/', views.delete_timeframe_api, name='api_delete_timeframe'),
+    path('api/timeframes/apply-preset/', views.apply_preset_timeframes_api, name='api_apply_preset_timeframes'),
+
+    # Institutional Settings & Official DepEd Signatories
+    path('settings/', views.settings_view, name='settings'),
+    path('api/settings/update/', views.update_settings_api, name='api_update_settings'),
+    path('api/settings/reset/', views.reset_settings_api, name='api_reset_settings'),
+    path('api/rooms/add/', views.add_room_api, name='api_add_room'),
+    path('api/rooms/delete/<int:room_id>/', views.delete_room_api, name='api_delete_room'),
+    path('api/clusters/add/', views.add_cluster_api, name='api_add_cluster'),
+    path('api/clusters/delete/<int:cluster_id>/', views.delete_cluster_api, name='api_delete_cluster'),
+
+    # Official DepEd Printouts
+    path('print/classroom-program/<int:section_id>/', views.print_classroom_program_view, name='print_classroom_program'),
+    path('print/teacher-program/<int:teacher_id>/', views.print_teacher_program_view, name='print_teacher_program'),
+
     # API endpoints
     path('api/run-ga/', views.run_genetic_algorithm, name='api_run_ga'),
     path('api/swap-item/', views.swap_item_api, name='api_swap_item'),

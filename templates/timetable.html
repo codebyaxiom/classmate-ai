@@ -19,6 +19,17 @@
             </div>
             
             <div class="flex items-center space-x-2 self-start md:self-auto">
+                {% if filter_type == 'section' and filter_id %}
+                <a href="{% url 'print_classroom_program' filter_id %}" target="_blank" class="px-3.5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-lines text-deped-gold"></i>
+                    <span>DepEd Program</span>
+                </a>
+                {% elif filter_type == 'teacher' and filter_id %}
+                <a href="{% url 'print_teacher_program' filter_id %}" target="_blank" class="px-3.5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-invoice text-deped-gold"></i>
+                    <span>Teacher's Program</span>
+                </a>
+                {% endif %}
                 <button onclick="window.print()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition flex items-center space-x-1.5 shadow-sm">
                     <i class="fa-solid fa-print text-slate-400"></i>
                     <span>Print Table</span>
@@ -47,7 +58,7 @@
                     {% if filter_type == 'section' %}
                         {% for sec in sections %}
                         <option value="{{ sec.id }}" {% if filter_id == sec.id|stringformat:"i" %}selected{% endif %}>
-                            {{ sec.name }} (G{{ sec.grade_level }} - {{ sec.get_cluster_display }})
+                            {{ sec.name }} (G{{ sec.grade_level }} - {{ sec.cluster_display_name }})
                         </option>
                         {% endfor %}
                     {% elif filter_type == 'teacher' %}

@@ -45,6 +45,10 @@ class GeneticTimetableScheduler:
         self.timeslots = list(TimeSlot.objects.filter(is_break=False))
         self.timeslot_ids = [ts.id for ts in self.timeslots]
         self.all_timeslots = {ts.id: ts for ts in TimeSlot.objects.all()}
+        self.grade_timeslots = defaultdict(list)
+        for ts in self.timeslots:
+            self.grade_timeslots[ts.grade_level].append(ts.id)
+
         self.rooms = list(Room.objects.filter(is_active=True))
         self.rooms_by_id = {r.id: r for r in self.rooms}
         self.teachers = list(Teacher.objects.filter(is_active=True))
@@ -78,6 +82,13 @@ class GeneticTimetableScheduler:
         for r in self.rooms:
             self.rooms_by_type[r.room_type].append(r.id)
 
+    def get_slots_for_section(self, sec_id):
+        sec = self.sections_by_id.get(sec_id)
+        sec_grade = sec.grade_level if sec else 0
+        if sec_grade in self.grade_timeslots and self.grade_timeslots[sec_grade]:
+            return self.grade_timeslots[sec_grade]
+        return self.grade_timeslots.get(0, self.timeslot_ids)
+
     def _get_valid_teacher(self, subject_id, assigned_teacher=None):
         if assigned_teacher and assigned_teacher in self.teachers_by_id:
             return assigned_teacher
@@ -102,11 +113,15 @@ class GeneticTimetableScheduler:
         genes = []
         for sec_id, reqs in self.section_requirements.items():
             num_reqs = len(reqs)
+            sec_slots = self.get_slots_for_section(sec_id)
+            if not sec_slots:
+                sec_slots = self.timeslot_ids
+
             # Sample unique timeslots for this section (Permutation Model - zero self-collision)
-            if num_reqs <= len(self.timeslot_ids):
-                assigned_slots = random.sample(self.timeslot_ids, num_reqs)
+            if num_reqs <= len(sec_slots):
+                assigned_slots = random.sample(sec_slots, num_reqs)
             else:
-                assigned_slots = [random.choice(self.timeslot_ids) for _ in range(num_reqs)]
+                assigned_slots = [random.choice(sec_slots) for _ in range(num_reqs)]
 
             for i, req in enumerate(reqs):
                 subj_id = req['subject_id']
@@ -127,6 +142,8 @@ class GeneticTimetableScheduler:
         teacher_timeslot = defaultdict(list)
         room_timeslot = defaultdict(list)
         section_timeslot = defaultdict(list)
+        teacher_day_intervals = defaultdict(list)
+        room_day_intervals = defaultdict(list)
         teacher_daily_load = defaultdict(lambda: defaultdict(int))
         section_daily_subj = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
@@ -144,6 +161,8 @@ class GeneticTimetableScheduler:
             section_timeslot[(gene.section_id, gene.timeslot_id)].append(gene)
 
             day = ts.day_of_week
+            teacher_day_intervals[(gene.teacher_id, day)].append((ts.start_time, ts.end_time, ts.id))
+            room_day_intervals[(gene.room_id, day)].append((ts.start_time, ts.end_time, ts.id))
             teacher_daily_load[gene.teacher_id][day] += 1
             section_daily_subj[gene.section_id][day][gene.subject_id] += 1
 
@@ -159,13 +178,25 @@ class GeneticTimetableScheduler:
             if teacher and teacher.preferred_vacant_period and ts.period_number == teacher.preferred_vacant_period:
                 soft_penalties += 20
 
-        # Check teacher double-booking
+        # Check teacher double-booking (same timeslot)
         for (t_id, ts_id), glist in teacher_timeslot.items():
             if len(glist) > 1:
                 hard_penalties += 1000 * (len(glist) - 1)
                 t_name = self.teachers_by_id[t_id].full_name if t_id in self.teachers_by_id else f"Teacher #{t_id}"
                 ts = self.all_timeslots.get(ts_id)
                 conflict_logs.append(f"Teacher collision: {t_name} on {ts.get_day_of_week_display()} P{ts.period_number}")
+
+        # Check teacher time overlap across different grade-level timeframes
+        for (t_id, day), intervals in teacher_day_intervals.items():
+            if len(intervals) > 1:
+                intervals.sort(key=lambda x: x[0])
+                for i in range(len(intervals) - 1):
+                    s1, e1, ts1_id = intervals[i]
+                    s2, e2, ts2_id = intervals[i+1]
+                    if s2 < e1 and ts1_id != ts2_id:
+                        hard_penalties += 1000
+                        t_name = self.teachers_by_id[t_id].full_name if t_id in self.teachers_by_id else f"Teacher #{t_id}"
+                        conflict_logs.append(f"Teacher clock overlap across grades: {t_name} on Day {day}")
 
         # Check room double-booking
         for (r_id, ts_id), glist in room_timeslot.items():
@@ -174,6 +205,18 @@ class GeneticTimetableScheduler:
                 r_name = self.rooms_by_id[r_id].name if r_id in self.rooms_by_id else f"Room #{r_id}"
                 ts = self.all_timeslots.get(ts_id)
                 conflict_logs.append(f"Room collision: {r_name} on {ts.get_day_of_week_display()} P{ts.period_number}")
+
+        # Check room time overlap across different grade-level timeframes
+        for (r_id, day), intervals in room_day_intervals.items():
+            if len(intervals) > 1:
+                intervals.sort(key=lambda x: x[0])
+                for i in range(len(intervals) - 1):
+                    s1, e1, ts1_id = intervals[i]
+                    s2, e2, ts2_id = intervals[i+1]
+                    if s2 < e1 and ts1_id != ts2_id:
+                        hard_penalties += 1000
+                        r_name = self.rooms_by_id[r_id].name if r_id in self.rooms_by_id else f"Room #{r_id}"
+                        conflict_logs.append(f"Room clock overlap across grades: {r_name} on Day {day}")
 
         # Check section double-booking (if any)
         for (s_id, ts_id), glist in section_timeslot.items():
@@ -212,7 +255,6 @@ class GeneticTimetableScheduler:
     def crossover(self, parent1, parent2):
         # Section-preserving crossover
         child_genes = []
-        # Randomly choose section assignments from parent 1 or parent 2
         p1_by_sec = defaultdict(list)
         p2_by_sec = defaultdict(list)
         for g in parent1.genes:
@@ -229,7 +271,6 @@ class GeneticTimetableScheduler:
         return child
 
     def mutate(self, individual):
-        # Group child's genes by section to preserve distinct timeslots
         genes_by_sec = defaultdict(list)
         for g in individual.genes:
             genes_by_sec[g.section_id].append(g)
@@ -244,7 +285,8 @@ class GeneticTimetableScheduler:
                 else:
                     # Move one gene to an unused timeslot for this section
                     used_ts = {g.timeslot_id for g in sec_genes}
-                    free_ts = [ts_id for ts_id in self.timeslot_ids if ts_id not in used_ts]
+                    sec_slots = self.get_slots_for_section(sec_id)
+                    free_ts = [ts_id for ts_id in sec_slots if ts_id not in used_ts]
                     if free_ts:
                         g = random.choice(sec_genes)
                         if not g.is_locked:

@@ -2,7 +2,8 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from scheduler.models import (
     AcademicYear, Term, Department, Room, Subject, Teacher, 
-    TeacherQualification, Section, TimeSlot, SectionSubjectRequirement, Schedule, ScheduleItem
+    TeacherQualification, Section, TimeSlot, SchoolProfile, SectionSubjectRequirement, Schedule, ScheduleItem,
+    CurriculumCluster
 )
 from scheduler.engine.genetic_scheduler import GeneticTimetableScheduler
 
@@ -224,4 +225,156 @@ class ClassmateAITestSuite(TestCase):
         self.assertTrue(res.json()['success'])
         self.assertFalse(Section.objects.filter(id=sec.id).exists())
 
+    def test_school_profile_default_and_update_api(self):
+        # Check settings view loads
+        res = self.client.get(reverse('settings'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "School Profile, Signatories & Classrooms")
 
+        # Update settings
+        res = self.client.post(reverse('api_update_settings'), {
+            'school_name': 'CAGAYAN VALLEY HIGH SCHOOL',
+            'school_id': '300999',
+            'region': 'REGION II',
+            'division': 'DIVISION OF ILAGAN',
+            'district': 'District 1',
+            'prepared_by_name': 'DR. JUAN DELA CRUZ',
+            'prepared_by_title': 'Principal I',
+            'reviewed_by_name': 'DR. MARIA SANTOS',
+            'reviewed_by_title': 'PSDS',
+            'verified_by_name': 'DR. PEDRO REYES',
+            'verified_by_title': 'CID Chief',
+            'recommending_name': 'DR. ANA LIM',
+            'recommending_title': 'ASDS',
+            'approved_by_name': 'DR. CARLOS TAN',
+            'approved_by_title': 'SDS',
+        })
+        data = res.json()
+        self.assertTrue(data['success'])
+
+        profile = SchoolProfile.get_settings()
+        self.assertEqual(profile.school_name, 'CAGAYAN VALLEY HIGH SCHOOL')
+        self.assertEqual(profile.prepared_by_name, 'DR. JUAN DELA CRUZ')
+
+        # Reset to defaults
+        res_reset = self.client.post(reverse('api_reset_settings'))
+        self.assertTrue(res_reset.json()['success'])
+        profile.refresh_from_db()
+        self.assertEqual(profile.school_name, 'ISABELA NATIONAL HIGH SCHOOL')
+
+    def test_add_and_delete_room_api(self):
+        res = self.client.post(reverse('api_add_room'), {
+            'name': 'Science Lab Delta',
+            'room_type': 'science_lab',
+            'building': 'Science Wing',
+            'capacity': 50,
+        })
+        data = res.json()
+        self.assertTrue(data['success'])
+        room_id = data['room_id']
+        self.assertTrue(Room.objects.filter(id=room_id).exists())
+
+        # Delete room
+        res_del = self.client.post(reverse('api_delete_room', args=[room_id]))
+        self.assertTrue(res_del.json()['success'])
+        self.assertFalse(Room.objects.filter(id=room_id).exists())
+
+    def test_timeframes_view_and_add_delete_api(self):
+        res = self.client.get(reverse('timeframes') + '?grade=11')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Bell Schedules & Timeframes")
+
+        # Add custom period for Grade 11
+        res_add = self.client.post(reverse('api_add_timeframe'), {
+            'grade_level': 11,
+            'period_number': 8,
+            'label': 'Afternoon Practicum Block',
+            'start_time': '13:00',
+            'end_time': '14:30',
+            'is_break': False,
+        })
+        self.assertTrue(res_add.json()['success'])
+        slots = TimeSlot.objects.filter(grade_level=11, period_number=8)
+        self.assertEqual(slots.count(), 5) # Mon-Fri
+        self.assertEqual(slots.first().duration_minutes, 90)
+
+        # Delete period
+        res_del = self.client.post(reverse('api_delete_timeframe', args=[8]), {
+            'grade_level': 11,
+        })
+        self.assertTrue(res_del.json()['success'])
+        self.assertEqual(TimeSlot.objects.filter(grade_level=11, period_number=8).count(), 0)
+
+    def test_apply_preset_timeframes_api(self):
+        res = self.client.post(reverse('api_apply_preset_timeframes'), {
+            'preset_type': 'shs_sample',
+            'grade_level': 11,
+        })
+        data = res.json()
+        self.assertTrue(data['success'])
+        slots = TimeSlot.objects.filter(grade_level=11)
+        self.assertEqual(slots.count(), 50) # 10 periods x 5 days
+
+    def test_print_classroom_program_view(self):
+        res = self.client.get(reverse('print_classroom_program', args=[self.section.id]))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "CLASSROOM PROGRAM")
+        self.assertContains(res, self.section.name)
+        self.assertContains(res, "Prepared by:")
+        self.assertContains(res, "APPROVED:")
+
+    def test_print_teacher_program_view(self):
+        res = self.client.get(reverse('print_teacher_program', args=[self.teacher.id]))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "TEACHER'S PROGRAM")
+        self.assertContains(res, self.teacher.full_name)
+        self.assertContains(res, "NO. OF MINS")
+        self.assertContains(res, "APPROVED:")
+
+    def test_add_and_delete_curriculum_cluster_api(self):
+        # Add a custom cluster
+        res = self.client.post(reverse('api_add_cluster'), {
+            'name': 'Robotics and Automation Track',
+            'code': 'robotics_auto',
+            'curriculum_level': 'shs',
+            'description': 'Advanced robotics and hardware engineering.'
+        })
+        data = res.json()
+        self.assertTrue(data['success'])
+        cluster_id = data['cluster_id']
+        self.assertTrue(CurriculumCluster.objects.filter(id=cluster_id).exists())
+        cluster = CurriculumCluster.objects.get(id=cluster_id)
+        self.assertEqual(cluster.code, 'robotics_auto')
+        self.assertEqual(cluster.name, 'Robotics and Automation Track')
+
+        # Verify cluster appears in sections and subjects views
+        res_sec = self.client.get(reverse('sections'))
+        self.assertEqual(res_sec.status_code, 200)
+        self.assertContains(res_sec, 'Robotics and Automation Track')
+
+        res_subj = self.client.get(reverse('subjects'))
+        self.assertEqual(res_subj.status_code, 200)
+        self.assertContains(res_subj, 'Robotics and Automation Track')
+
+        # Test cluster_display_name on Section and Subject
+        sec_custom = Section.objects.create(
+            name='Grade 11 - Robotics Alpha',
+            grade_level=11,
+            cluster='robotics_auto',
+            academic_year=self.ay
+        )
+        self.assertEqual(sec_custom.cluster_display_name, 'Robotics and Automation Track')
+
+        subj_custom = Subject.objects.create(
+            code='ROBOT-11',
+            title='Intro to Mechatronics',
+            grade_level=11,
+            cluster='robotics_auto',
+            weekly_periods=4
+        )
+        self.assertEqual(subj_custom.cluster_display_name, 'Robotics and Automation Track')
+
+        # Delete cluster
+        res_del = self.client.post(reverse('api_delete_cluster', args=[cluster_id]))
+        self.assertTrue(res_del.json()['success'])
+        self.assertFalse(CurriculumCluster.objects.filter(id=cluster_id).exists())

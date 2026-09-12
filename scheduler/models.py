@@ -51,6 +51,38 @@ class Room(models.Model):
     def __str__(self):
         return f"{self.name} [{self.get_room_type_display()}]"
 
+class CurriculumCluster(models.Model):
+    LEVEL_CHOICES = [
+        ('jhs', 'Junior High School (JHS)'),
+        ('shs', 'Senior High School (SHS)'),
+        ('both', 'Both JHS & SHS'),
+    ]
+    code = models.CharField(max_length=50, unique=True, help_text="e.g. pure_academic, stem, humss, jhs_core")
+    name = models.CharField(max_length=150, help_text="e.g. Pure Academic, STEM Cluster, Humanities")
+    curriculum_level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='shs')
+    description = models.CharField(max_length=255, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_curriculum_level_display()})"
+
+    @classmethod
+    def get_all_choices(cls):
+        clusters = list(cls.objects.filter(is_active=True).order_by('curriculum_level', 'name'))
+        if not clusters:
+            return [
+                ('pure_academic', 'Pure Academic'),
+                ('jhs_core', 'JHS MATATAG Curriculum Core'),
+                ('shs_core', 'SSHS Core Subject'),
+                ('shs_stem', 'SSHS Academic - STEM Cluster'),
+                ('shs_arts_ssh', 'SSHS Academic - Arts, Social Sciences & Humanities'),
+                ('shs_sports_health', 'SSHS Academic - Sports, Health & Wellness'),
+                ('shs_tech_pro', 'SSHS Tech-Pro (TVL) Elective'),
+            ]
+        return [(c.code, c.name) for c in clusters]
+
+
 class Subject(models.Model):
     GRADE_CHOICES = [
         (7, 'Grade 7 (JHS)'),
@@ -61,6 +93,7 @@ class Subject(models.Model):
         (12, 'Grade 12 (SHS)'),
     ]
     CLUSTER_CHOICES = [
+        ('pure_academic', 'Pure Academic (SSHS)'),
         ('jhs_core', 'JHS MATATAG Curriculum Core'),
         ('shs_core', 'SSHS Core Subject'),
         ('shs_stem', 'SSHS Academic - STEM Cluster'),
@@ -71,12 +104,22 @@ class Subject(models.Model):
     code = models.CharField(max_length=30, unique=True)
     title = models.CharField(max_length=150)
     grade_level = models.IntegerField(choices=GRADE_CHOICES)
-    cluster = models.CharField(max_length=30, choices=CLUSTER_CHOICES, default='jhs_core')
+    cluster = models.CharField(max_length=60, default='jhs_core')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
     room_type_needed = models.CharField(max_length=30, choices=Room.ROOM_TYPES, default='lecture')
     weekly_periods = models.IntegerField(default=4, help_text="Number of 1-hour periods per week")
     consecutive_periods = models.IntegerField(default=1, help_text="1 for standard, 2 for double-period lab/workshop")
     is_lab = models.BooleanField(default=False)
+
+    @property
+    def cluster_display_name(self):
+        c = CurriculumCluster.objects.filter(code=self.cluster).first()
+        if c:
+            return c.name
+        dict_choices = dict(self.CLUSTER_CHOICES)
+        if self.cluster in dict_choices:
+            return dict_choices[self.cluster]
+        return self.cluster.replace('_', ' ').upper()
 
     def __str__(self):
         return f"{self.code} - {self.title} (G{self.grade_level})"
@@ -118,13 +161,23 @@ class TeacherQualification(models.Model):
 class Section(models.Model):
     name = models.CharField(max_length=100)
     grade_level = models.IntegerField(choices=Subject.GRADE_CHOICES)
-    cluster = models.CharField(max_length=30, choices=Subject.CLUSTER_CHOICES, default='jhs_core')
+    cluster = models.CharField(max_length=60, default='jhs_core')
     homeroom = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name='homeroom_sections')
     adviser = models.ForeignKey('Teacher', on_delete=models.SET_NULL, null=True, blank=True, related_name='advised_sections')
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='sections')
 
     class Meta:
         unique_together = ('name', 'academic_year')
+
+    @property
+    def cluster_display_name(self):
+        c = CurriculumCluster.objects.filter(code=self.cluster).first()
+        if c:
+            return c.name
+        dict_choices = dict(Subject.CLUSTER_CHOICES)
+        if self.cluster in dict_choices:
+            return dict_choices[self.cluster]
+        return self.cluster.replace('_', ' ').upper()
 
     def __str__(self):
         return f"{self.name} (G{self.grade_level})"
@@ -162,19 +215,70 @@ class TimeSlot(models.Model):
         (4, 'Thursday'),
         (5, 'Friday'),
     ]
+    TIMEFRAME_GRADE_CHOICES = [
+        (0, 'All / Universal'),
+        (7, 'Grade 7 (JHS)'),
+        (8, 'Grade 8 (JHS)'),
+        (9, 'Grade 9 (JHS)'),
+        (10, 'Grade 10 (JHS)'),
+        (11, 'Grade 11 (SHS)'),
+        (12, 'Grade 12 (SHS)'),
+    ]
     day_of_week = models.IntegerField(choices=DAY_CHOICES)
     period_number = models.IntegerField()
     start_time = models.TimeField()
     end_time = models.TimeField()
     label = models.CharField(max_length=50)
     is_break = models.BooleanField(default=False, help_text="Flag Ceremony, Recess, or Lunch Break")
+    grade_level = models.IntegerField(default=0, choices=TIMEFRAME_GRADE_CHOICES, help_text="Grade level this timeframe applies to (0 for Universal)")
+
+    @property
+    def duration_minutes(self):
+        start_m = self.start_time.hour * 60 + self.start_time.minute
+        end_m = self.end_time.hour * 60 + self.end_time.minute
+        return max(0, end_m - start_m)
 
     class Meta:
-        unique_together = ('day_of_week', 'period_number')
-        ordering = ['day_of_week', 'period_number']
+        unique_together = ('day_of_week', 'period_number', 'grade_level')
+        ordering = ['grade_level', 'day_of_week', 'period_number']
 
     def __str__(self):
-        return f"{self.get_day_of_week_display()} P{self.period_number} ({self.label})"
+        grade_tag = f" [G{self.grade_level}]" if self.grade_level else ""
+        return f"{self.get_day_of_week_display()} P{self.period_number}{grade_tag} ({self.label})"
+
+
+class SchoolProfile(models.Model):
+    school_name = models.CharField(max_length=200, default="ISABELA NATIONAL HIGH SCHOOL")
+    school_id = models.CharField(max_length=50, default="300582", blank=True)
+    region = models.CharField(max_length=150, default="REGION II – CAGAYAN VALLEY")
+    division = models.CharField(max_length=150, default="SCHOOLS DIVISION OF ISABELA")
+    district = models.CharField(max_length=100, default="District II", blank=True)
+
+    # 5 Official DepEd Signatories matching official document format
+    prepared_by_name = models.CharField(max_length=150, default="VILMA L. VILLADOR, PhD")
+    prepared_by_title = models.CharField(max_length=150, default="Principal II")
+
+    reviewed_by_name = models.CharField(max_length=150, default="JOVITO M. CADIZ, PhD")
+    reviewed_by_title = models.CharField(max_length=150, default="Principal IV, District-in-Charge")
+
+    verified_by_name = models.CharField(max_length=150, default="MARIETESS B. BAQUIRAN, PhD")
+    verified_by_title = models.CharField(max_length=150, default="Chief, Curriculum Instruction Division")
+
+    recommending_name = models.CharField(max_length=150, default="MARY JULIE A. TRUS, PhD, CESO VI")
+    recommending_title = models.CharField(max_length=150, default="Assistant Schools Division Superintendent")
+
+    approved_by_name = models.CharField(max_length=150, default="RACHEL R. LLANA, PhD, CESO V")
+    approved_by_title = models.CharField(max_length=150, default="Schools Division Superintendent")
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.school_name} Profile"
+
+    @classmethod
+    def get_settings(cls):
+        profile, _ = cls.objects.get_or_create(id=1)
+        return profile
 
 class SectionSubjectRequirement(models.Model):
     section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='subject_requirements')

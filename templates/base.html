@@ -80,6 +80,9 @@
                     <a href="{% url 'sections' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'sections' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
                         <i class="fa-solid fa-people-roof mr-1.5"></i>Sections
                     </a>
+                    <a href="{% url 'timeframes' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'timeframes' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-clock mr-1.5"></i>Timeframes
+                    </a>
                     <a href="{% url 'subjects' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'subjects' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
                         <i class="fa-solid fa-book-open-reader mr-1.5"></i>Subjects
                     </a>
@@ -89,8 +92,11 @@
                     <a href="{% url 'room_utilization' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'room_utilization' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
                         <i class="fa-solid fa-door-open mr-1.5"></i>Rooms
                     </a>
+                    <a href="{% url 'settings' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'settings' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
+                        <i class="fa-solid fa-gear mr-1.5"></i>Settings
+                    </a>
                     <a href="{% url 'import_export' %}" class="px-3 py-2 rounded-lg text-sm font-semibold transition {% if request.resolver_match.url_name == 'import_export' %}bg-deped-blue text-white shadow-sm{% else %}text-slate-600 hover:text-deped-blue hover:bg-slate-100{% endif %}">
-                        <i class="fa-solid fa-file-excel mr-1.5"></i>Import/Export
+                        <i class="fa-solid fa-file-excel mr-1.5"></i>Data
                     </a>
                 </nav>
 
@@ -109,11 +115,9 @@
     {% if messages %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
         {% for message in messages %}
-        <div class="p-4 rounded-xl text-sm font-medium border flex items-center justify-between {% if message.tags == 'error' %}bg-red-50 text-red-700 border-red-200{% else %}bg-emerald-50 text-emerald-700 border-emerald-200{% endif %}">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid {% if message.tags == 'error' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}"></i>
-                <span>{{ message }}</span>
-            </div>
+        <div class="p-4 rounded-xl mb-3 flex items-center space-x-3 {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800{% else %}bg-emerald-50 border border-emerald-200 text-emerald-800{% endif %}">
+            <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation text-red-500{% else %}fa-circle-check text-emerald-500{% endif %} text-lg"></i>
+            <span class="text-xs sm:text-sm font-medium">{{ message }}</span>
         </div>
         {% endfor %}
     </div>
@@ -125,44 +129,33 @@
     </main>
 
     <!-- Mobile Bottom Navigation Bar (Phone Optimized) -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 shadow-lg px-1 py-1 flex justify-around items-center">
-        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'dashboard' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 shadow-lg px-2 py-1 flex justify-between items-center">
+        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'dashboard' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
             <i class="fa-solid fa-gauge-high text-base mb-0.5"></i>
             <span>Home</span>
         </a>
-        <a href="{% url 'timetable' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'timetable' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+        <a href="{% url 'timetable' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'timetable' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
             <i class="fa-solid fa-calendar-days text-base mb-0.5"></i>
             <span>Schedule</span>
         </a>
-        <a href="{% url 'teachers' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teachers' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
-            <i class="fa-solid fa-chalkboard-user text-base mb-0.5"></i>
-            <span>Faculty</span>
-        </a>
-        <a href="{% url 'sections' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'sections' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+        <a href="{% url 'sections' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'sections' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
             <i class="fa-solid fa-people-roof text-base mb-0.5"></i>
             <span>Sections</span>
         </a>
-        <button onclick="openGaModal()" class="flex flex-col items-center -mt-3 p-2 rounded-full bg-gradient-to-tr from-deped-blue to-blue-600 text-white shadow-lg shadow-blue-500/30 active:scale-95 transition" title="Run AI Optimizer">
+        <button onclick="openGaModal()" class="flex flex-col items-center -mt-4 p-2.5 rounded-full bg-gradient-to-tr from-deped-blue to-blue-600 text-white shadow-lg shadow-blue-500/30 active:scale-95 transition" title="Run AI Optimizer">
             <i class="fa-solid fa-bolt text-deped-gold text-base"></i>
         </button>
-        <a href="{% url 'teacher_loads' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teacher_loads' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
-            <i class="fa-solid fa-id-card-clip text-base mb-0.5"></i>
-            <span>SF7</span>
+        <a href="{% url 'timeframes' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'timeframes' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-clock text-base mb-0.5"></i>
+            <span>Bell</span>
         </a>
-        <a href="{% url 'subjects' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'subjects' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
-            <i class="fa-solid fa-book-open-reader text-base mb-0.5"></i>
-            <span>Subjects</span>
+        <a href="{% url 'teachers' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teachers' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-chalkboard-user text-base mb-0.5"></i>
+            <span>Faculty</span>
         </a>
-        <button onclick="openGaModal()" class="flex flex-col items-center -mt-3 p-2 rounded-full bg-gradient-to-tr from-deped-blue to-blue-600 text-white shadow-lg shadow-blue-500/30 active:scale-95 transition" title="Run AI Optimizer">
-            <i class="fa-solid fa-bolt text-deped-gold text-base"></i>
-        </button>
-        <a href="{% url 'teacher_loads' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teacher_loads' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
-            <i class="fa-solid fa-id-card-clip text-base mb-0.5"></i>
-            <span>SF7</span>
-        </a>
-        <a href="{% url 'import_export' %}" class="flex flex-col items-center py-1 px-1 text-[10px] font-semibold {% if request.resolver_match.url_name == 'import_export' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
-            <i class="fa-solid fa-file-excel text-base mb-0.5"></i>
-            <span>Data</span>
+        <a href="{% url 'settings' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'settings' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-gear text-base mb-0.5"></i>
+            <span>Settings</span>
         </a>
     </nav>
 

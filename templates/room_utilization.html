@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Room & Facility Utilization | CLASSMATE-AI{% endblock %}
 
@@ -16,7 +16,11 @@
                 Track occupancy rates across standard classrooms, science labs, computer labs, and TVL workshops.
             </p>
         </div>
-        <div>
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'settings' %}" class="px-3.5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-plus text-deped-gold"></i>
+                <span>+ Add Classroom</span>
+            </a>
             <a href="{% url 'export_excel' %}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow transition flex items-center space-x-1.5">
                 <i class="fa-solid fa-file-excel"></i>
                 <span>Export Report</span>

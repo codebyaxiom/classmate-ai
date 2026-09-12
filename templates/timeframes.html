@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}Timeframes & Bell Schedules | CLASSMATE-AI{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-deped-blue/10 text-deped-darkblue border border-deped-blue/20">DepEd Bell Schedule Engine</span>
+                <span class="text-xs text-slate-500 font-semibold">Separate Timeframes by Grade Level</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-bold font-heading text-slate-900 mt-1 flex items-center space-x-2">
+                <i class="fa-solid fa-clock text-deped-blue"></i>
+                <span>Bell Schedules & Timeframes</span>
+            </h1>
+            <p class="text-xs text-slate-500">
+                Establish custom period intervals, recess, and lunch breaks. Supports different schedules for Junior High (Grades 7–10) and Strengthened Senior High (Grades 11–12).
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button onclick="openAddModal()" class="px-4 py-2.5 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold text-xs shadow-md shadow-blue-500/20 transition active:scale-95 flex items-center space-x-2">
+                <i class="fa-solid fa-plus text-deped-gold"></i>
+                <span>+ Add Time Frame</span>
+            </button>
+            <button onclick="openPresetModal()" class="px-3.5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-bolt text-amber-600"></i>
+                <span>⚡ Load Presets</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Grade Level Switcher Tabs -->
+    <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm overflow-x-auto">
+        <div class="flex items-center space-x-2 min-w-max">
+            {% for g_val, g_label in grade_choices %}
+            <a href="?grade={{ g_val }}" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 {% if selected_grade == g_val %}bg-deped-blue text-white shadow-sm shadow-blue-600/30{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">
+                <span>{{ g_label }}</span>
+                {% with c=slot_counts|dictsort:"0" %}
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] {% if selected_grade == g_val %}bg-white/20 text-white{% else %}bg-slate-200 text-slate-600{% endif %}">
+                    {% if g_val == 0 %}{{ slot_counts.0|default:0 }}{% elif g_val == 7 %}{{ slot_counts.7|default:0 }}{% elif g_val == 8 %}{{ slot_counts.8|default:0 }}{% elif g_val == 9 %}{{ slot_counts.9|default:0 }}{% elif g_val == 10 %}{{ slot_counts.10|default:0 }}{% elif g_val == 11 %}{{ slot_counts.11|default:0 }}{% elif g_val == 12 %}{{ slot_counts.12|default:0 }}{% endif %} periods
+                </span>
+                {% endwith %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Periods Table / Cards -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-xs text-slate-800 uppercase tracking-wider">Configured Bell Periods</span>
+                <span class="text-[11px] text-slate-500 font-semibold">
+                    ({% for g_val, g_label in grade_choices %}{% if selected_grade == g_val %}{{ g_label }}{% endif %}{% endfor %})
+                </span>
+            </div>
+            <span class="text-xs text-slate-500">Applies Monday – Friday</span>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+            {% for p in periods %}
+            <div class="p-4 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 {% if p.is_break %}bg-amber-50/40{% endif %}">
+                <div class="flex items-start sm:items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm {% if p.is_break %}bg-amber-100 text-amber-800 border border-amber-200{% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+                        P{{ p.period_number }}
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-slate-900 text-sm">{{ p.label }}</span>
+                            {% if p.is_break %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Break / Ceremony</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-deped-blue border border-blue-200">Instructional Class</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center space-x-3 text-xs text-slate-500 mt-1">
+                            <span class="flex items-center space-x-1">
+                                <i class="fa-regular fa-clock text-slate-400"></i>
+                                <span>{{ p.start_time|time:"g:i A" }} – {{ p.end_time|time:"g:i A" }}</span>
+                            </span>
+                            <span>•</span>
+                            <span class="font-bold text-slate-700">{{ p.duration_minutes }} minutes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 self-end sm:self-auto">
+                    <button onclick="deletePeriod({{ p.period_number }}, {{ selected_grade }})" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition active:scale-95 flex items-center space-x-1">
+                        <i class="fa-solid fa-trash text-[10px]"></i>
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-xl mb-3">
+                    <i class="fa-solid fa-calendar-xmark"></i>
+                </div>
+                <h3 class="text-sm font-bold text-slate-800">No Custom Periods Defined</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    This grade level currently uses the Universal / Fallback schedule, or has no custom periods. Click below to load an official DepEd schedule preset or add a timeframe.
+                </p>
+                <div class="mt-4 flex items-center justify-center space-x-2">
+                    <button onclick="openPresetModal()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow transition">
+                        ⚡ Quick Load DepEd Preset
+                    </button>
+                    <button onclick="openAddModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                        + Add Custom Period
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Add Timeframe Period -->
+<div id="addModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-clock-medical text-deped-blue"></i>
+                <span>Add Time Frame Period</span>
+            </h3>
+            <button onclick="closeAddModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="addTimeframeForm" onsubmit="submitAddTimeframe(event)" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Target Grade Level</label>
+                <select name="grade_level" id="targetGradeLevel" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue bg-white">
+                    {% for g_val, g_label in grade_choices %}
+                    <option value="{{ g_val }}" {% if selected_grade == g_val %}selected{% endif %}>{{ g_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Period Number</label>
+                    <input type="number" name="period_number" placeholder="e.g. 1" min="1" max="15" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Period Label</label>
+                    <input type="text" name="label" required placeholder="e.g. Period 1, Flag Ceremony" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Start Time</label>
+                    <input type="time" name="start_time" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">End Time</label>
+                    <input type="time" name="end_time" required class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold outline-none focus:ring-2 focus:ring-deped-blue">
+                </div>
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                <label class="flex items-center space-x-2.5 cursor-pointer">
+                    <input type="checkbox" name="is_break" value="true" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                    <span class="font-bold text-slate-800">Is Break / Ceremony (Recess, Lunch, Flag Ceremony)</span>
+                </label>
+                <p class="text-[11px] text-slate-500 mt-1 pl-6">
+                    Break periods are automatically protected against class scheduling.
+                </p>
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+                * Slots will be automatically generated across all school days (Monday to Friday).
+            </p>
+
+            <div class="flex items-center justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-deped-blue hover:bg-deped-darkblue text-white font-bold transition shadow">
+                    Save Period
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Load Preset Schedules -->
+<div id="presetModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-bolt text-amber-500"></i>
+                <span>Load Official DepEd Bell Presets</span>
+            </h3>
+            <button onclick="closePresetModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <p class="text-xs text-slate-600">
+            Apply pre-configured official DepEd bell schedules for your target grade level:
+        </p>
+
+        <div class="space-y-3">
+            <!-- Preset 1: Strengthened SHS (from User Photos) -->
+            <div class="p-4 rounded-2xl border-2 border-deped-blue/30 bg-blue-50/40 hover:border-deped-blue transition cursor-pointer" onclick="applyPreset('shs_sample')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-xs text-deped-darkblue flex items-center space-x-1.5">
+                        <i class="fa-solid fa-graduation-cap text-deped-blue"></i>
+                        <span>Strengthened SHS Trimester Schedule</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-deped-blue text-white">Photo Match</span>
+                </div>
+                <p class="text-[11px] text-slate-600">
+                    7:00 Flag Ceremony, 4 morning periods (60m), 9:30 Recess (15m), 11:45 Lunch (75m), 1:00 Afternoon Block (90m), Homeroom (30m), Period 6 (60m).
+                </p>
+                <button class="mt-2.5 px-3 py-1.5 rounded-lg bg-deped-blue text-white font-bold text-[11px] w-full">
+                    Apply to Grade {{ selected_grade|default:"11" }} &rarr;
+                </button>
+            </div>
+
+            <!-- Preset 2: Standard JHS -->
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:border-slate-300 transition cursor-pointer" onclick="applyPreset('jhs_standard')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-school text-slate-600"></i>
+                        <span>Standard JHS 8-Period Schedule</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">Grades 7–10</span>
+                </div>
+                <p class="text-[11px] text-slate-600">
+                    7:15 Flag Ceremony, 60m periods, 9:45 Recess (15m), 12:00 Lunch Break (60m), 1:00–4:00 afternoon classes.
+                </p>
+                <button class="mt-2.5 px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 font-bold text-[11px] w-full">
+                    Apply to Grade {{ selected_grade|default:"7" }} &rarr;
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end pt-2">
+            <button type="button" onclick="closePresetModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAddModal() {
+    document.getElementById('addModal').classList.remove('hidden');
+}
+function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+}
+function openPresetModal() {
+    document.getElementById('presetModal').classList.remove('hidden');
+}
+function closePresetModal() {
+    document.getElementById('presetModal').classList.add('hidden');
+}
+
+async function submitAddTimeframe(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+
+    try {
+        const res = await fetch("{% url 'api_add_timeframe' %}", {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) {
+        alert("Failed to connect to server.");
+    }
+}
+
+async function deletePeriod(periodNumber, gradeLevel) {
+    if (!confirm(`Are you sure you want to delete Period P${periodNumber} for this grade level?`)) return;
+
+    const formData = new FormData();
+    formData.append('grade_level', gradeLevel);
+
+    try {
+        const res = await fetch(`/api/timeframes/delete/${periodNumber}/`, {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) {
+        alert("Failed to delete period.");
+    }
+}
+
+async function applyPreset(presetType) {
+    const grade = {{ selected_grade }};
+    if (!confirm(`Apply preset to Grade ${grade}? This will replace existing periods for Grade ${grade}.`)) return;
+
+    const formData = new FormData();
+    formData.append('preset_type', presetType);
+    formData.append('grade_level', grade);
+
+    try {
+        const res = await fetch("{% url 'api_apply_preset_timeframes' %}", {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) {
+        alert("Failed to apply preset.");
+    }
+}
+</script>
+{% endblock %}

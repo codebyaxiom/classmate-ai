@@ -166,8 +166,11 @@
 
                         <!-- Col 6: Actions -->
                         <td class="py-3.5 px-4 text-center align-top">
-                            <div class="flex items-center justify-center space-x-1.5">
-                                <a href="{% url 'print_sf7' t.id %}" target="_blank" class="p-1.5 text-blue-600 hover:text-deped-darkblue hover:bg-blue-50 rounded-lg transition" title="Print DepEd SF7">
+                            <div class="flex items-center justify-center space-x-1">
+                                <a href="{% url 'print_teacher_program' t.id %}" target="_blank" class="p-1.5 text-blue-600 hover:text-deped-darkblue hover:bg-blue-50 rounded-lg transition" title="Print DepEd Teacher's Program (Official Form)">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                </a>
+                                <a href="{% url 'print_sf7' t.id %}" target="_blank" class="p-1.5 text-slate-500 hover:text-deped-darkblue hover:bg-slate-100 rounded-lg transition" title="Print School Form 7 (SF7)">
                                     <i class="fa-solid fa-print"></i>
                                 </a>
                                 <button onclick="deleteTeacher({{ t.id }}, '{{ t.full_name|escapejs }}')" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" title="Remove Faculty">

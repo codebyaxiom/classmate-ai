@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DepEd Teacher's Program — {{ teacher.full_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fff; color: #0f172a; }
+        .prep-text { font-family: serif; font-style: italic; font-size: 8.5px; line-height: 1.15; color: #334155; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; margin: 0; }
+            @page { size: portrait; margin: 10mm 12mm 10mm 12mm; }
+            table { page-break-inside: avoid; }
+        }
+        table, th, td { border: 1px solid #1e293b; }
+    </style>
+</head>
+<body class="p-6 sm:p-10 max-w-4xl mx-auto text-slate-900 text-xs">
+
+    <!-- Action Bar (Hidden on Print) -->
+    <div class="no-print mb-6 p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div>
+            <span class="font-bold text-slate-800 block text-sm">Official DepEd Teacher's Program</span>
+            <span class="text-[11px] text-slate-500">Form conforms to DepEd Division Standards</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'settings' %}" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-gear text-slate-400"></i>
+                <span>Edit Signatories</span>
+            </a>
+            <a href="{% url 'teachers' %}" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-arrow-left text-slate-400"></i>
+                <span>Back to Faculty</span>
+            </a>
+            <button onclick="window.print()" class="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-print"></i>
+                <span>Print Official Form</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Official DepEd Letterhead Header -->
+    <div class="text-center space-y-0.5 pb-2">
+        <!-- DepEd Official Seal Icon -->
+        <div class="flex justify-center mb-1">
+            <div class="w-14 h-14 rounded-full border-2 border-blue-900/60 p-1 flex items-center justify-center bg-blue-50/50">
+                <i class="fa-solid fa-graduation-cap text-2xl text-blue-900"></i>
+            </div>
+        </div>
+        <p class="text-[10px] tracking-wider text-slate-600 font-semibold italic">Republic of the Philippines</p>
+        <p class="text-xs uppercase font-extrabold text-blue-950 tracking-wider">Department of Education</p>
+        <p class="text-[10px] font-bold text-slate-800 uppercase tracking-wide">{{ profile.region }}</p>
+        <p class="text-[10px] font-bold text-slate-800 uppercase tracking-wide">{{ profile.division }}</p>
+        {% if profile.district %}
+        <p class="text-[9px] text-slate-600 italic">{{ profile.district }}</p>
+        {% endif %}
+    </div>
+
+    <div class="border-b-2 border-slate-900 my-2"></div>
+
+    <!-- Document Title Block -->
+    <div class="text-center my-3 space-y-0.5">
+        <h1 class="text-sm font-black uppercase tracking-wider text-slate-950">
+            TEACHER'S PROGRAM
+        </h1>
+        <p class="text-[11px] font-semibold text-slate-700">
+            School Year {{ schedule.academic_year.name|default:"2026–2027" }}
+        </p>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900">
+            {{ schedule.term.name|upper|default:"SECOND TERM" }}
+        </h2>
+    </div>
+
+    <!-- Meta Details: Teacher, Major, Adviser, Designation -->
+    <div class="grid grid-cols-2 gap-4 font-bold text-xs pb-2 pt-1 uppercase">
+        <div class="space-y-0.5">
+            <div>TEACHER: <span class="font-extrabold text-slate-950">{{ teacher.full_name }}</span></div>
+            <div>MAJOR: <span class="text-slate-800">{{ major }}</span></div>
+        </div>
+        <div class="text-right space-y-0.5">
+            <div>ADVISER: <span class="text-slate-800">{{ adviser_tag }}</span></div>
+            {% if ancillary_title %}
+            <div class="font-extrabold text-slate-950">{{ ancillary_title }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Timetable Grid Table with NO. OF MINS -->
+    <table class="w-full border-collapse text-center text-[10px]">
+        <thead>
+            <tr class="bg-slate-200/90 font-extrabold text-slate-900">
+                <th rowspan="2" class="p-1.5 w-20 text-center font-extrabold uppercase">TIME</th>
+                <th rowspan="2" class="p-1.5 w-14 text-center font-extrabold uppercase leading-tight text-[9px]">NO. OF MINS</th>
+                <th colspan="5" class="p-1 text-center font-extrabold uppercase tracking-wider">SUBJECT</th>
+            </tr>
+            <tr class="bg-slate-200/90 font-bold text-slate-900">
+                <th class="p-1 uppercase">MONDAY</th>
+                <th class="p-1 uppercase">TUESDAY</th>
+                <th class="p-1 uppercase">WEDNESDAY</th>
+                <th class="p-1 uppercase">THURSDAY</th>
+                <th class="p-1 uppercase">FRIDAY</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            {% if r.is_break %}
+            <!-- Break Row (Flag Ceremony, Recess, Noon Break) -->
+            <tr class="bg-slate-100/80 font-bold italic text-slate-800">
+                <td class="p-1 font-semibold not-italic">{{ r.time_range }}</td>
+                <td class="p-1 font-bold not-italic">{{ r.duration_minutes }}</td>
+                <td colspan="5" class="p-1 text-center tracking-wider uppercase text-[10px]">{{ r.break_label }}</td>
+            </tr>
+            {% else %}
+            <!-- Instructional or Preparation Row -->
+            <tr>
+                <td class="p-1 font-bold bg-slate-50/70 text-slate-900 text-center">{{ r.time_range }}</td>
+                <td class="p-1 font-bold bg-slate-50/70 text-slate-900 text-center">{{ r.duration_minutes }}</td>
+                {% for day in r.days %}
+                <td class="p-1 text-center align-middle">
+                    {% if day.type == 'class' %}
+                        <div class="font-extrabold text-[10px] text-slate-950 leading-tight uppercase">{{ day.subject_title }}</div>
+                        <div class="text-[9px] text-slate-700 font-semibold mt-0.5">{{ day.section_name }}</div>
+                    {% elif day.type == 'homeroom' %}
+                        <div class="font-extrabold text-[10px] text-slate-950 leading-tight uppercase">HOMEROOM GUIDANCE</div>
+                        <div class="text-[9px] text-slate-700 font-semibold mt-0.5">{{ day.section_name }}</div>
+                    {% elif day.type == 'break' %}
+                        <span class="italic text-slate-600 font-bold">{{ day.label }}</span>
+                    {% else %}
+                        <!-- Official DepEd Preparation Block text -->
+                        <div class="prep-text">
+                            Preparation of<br>Instructional<br>Materials/Lesson<br>Planning/Recording of<br>Formative Assessment
+                        </div>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 5-Tier Hierarchical DepEd Signatories -->
+    <div class="mt-8 space-y-6 text-xs text-slate-900">
+
+        <!-- Row 1: Prepared by, Reviewed, Verified -->
+        <div class="grid grid-cols-3 gap-4 text-left">
+            <div>
+                <p class="font-bold text-[11px] mb-6">Prepared by:</p>
+                <div class="font-extrabold uppercase text-[11px] text-slate-950">{{ profile.prepared_by_name }}</div>
+                <div class="text-[10px] text-slate-700 font-semibold">{{ profile.prepared_by_title }}</div>
+            </div>
+            <div>
+                <p class="font-bold text-[11px] mb-6">Reviewed:</p>
+                <div class="font-extrabold uppercase text-[11px] text-slate-950">{{ profile.reviewed_by_name }}</div>
+                <div class="text-[10px] text-slate-700 font-semibold">{{ profile.reviewed_by_title }}</div>
+            </div>
+            <div>
+                <p class="font-bold text-[11px] mb-6">Verified:</p>
+                <div class="font-extrabold uppercase text-[11px] text-slate-950">{{ profile.verified_by_name }}</div>
+                <div class="text-[10px] text-slate-700 font-semibold">{{ profile.verified_by_title }}</div>
+            </div>
+        </div>
+
+        <!-- Row 2: Recommending Approval -->
+        <div class="text-left pt-2">
+            <p class="font-bold text-[11px] mb-6">Recommending Approval:</p>
+            <div class="font-extrabold uppercase text-[11px] text-slate-950">{{ profile.recommending_name }}</div>
+            <div class="text-[10px] text-slate-700 font-semibold">{{ profile.recommending_title }}</div>
+        </div>
+
+        <!-- Row 3: Final Approved (Centered) -->
+        <div class="text-center pt-2">
+            <p class="font-extrabold text-[11px] mb-6 uppercase tracking-wider">APPROVED:</p>
+            <div class="font-black uppercase text-xs text-slate-950 tracking-wide">{{ profile.approved_by_name }}</div>
+            <div class="text-[10px] text-slate-700 font-semibold">{{ profile.approved_by_title }}</div>
+        </div>
+
+    </div>
+
+</body>
+</html>

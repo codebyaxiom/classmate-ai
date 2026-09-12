@@ -85,11 +85,14 @@
                             </span>
                         </div>
                         <span class="text-[11px] font-medium text-slate-500 block mt-0.5">
-                            {{ sec.get_cluster_display }}
+                            {{ sec.cluster_display_name }}
                         </span>
                     </div>
 
                     <div class="flex items-center space-x-1.5">
+                        <a href="{% url 'print_classroom_program' sec.id %}" target="_blank" class="p-2 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition" title="Print DepEd Classroom Program">
+                            <i class="fa-solid fa-print"></i>
+                        </a>
                         <button onclick="openEditSectionModal({{ sec.id }}, '{{ sec.name|escapejs }}', '{{ sec.homeroom.id|default:'' }}', '{{ sec.adviser.id|default:'' }}')" class="p-2 text-slate-400 hover:text-deped-blue hover:bg-blue-50 rounded-xl transition" title="Edit Section & Teachers">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
