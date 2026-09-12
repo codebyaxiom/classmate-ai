@@ -120,24 +120,28 @@
 
     <!-- Mobile Bottom Navigation Bar (Phone Optimized) -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 shadow-lg px-2 py-1 flex justify-around items-center">
-        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'dashboard' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+        <a href="{% url 'dashboard' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'dashboard' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
             <i class="fa-solid fa-gauge-high text-base mb-0.5"></i>
             <span>Dashboard</span>
         </a>
-        <a href="{% url 'timetable' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'timetable' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+        <a href="{% url 'timetable' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'timetable' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
             <i class="fa-solid fa-calendar-days text-base mb-0.5"></i>
             <span>Timetable</span>
         </a>
-        <button onclick="openGaModal()" class="flex flex-col items-center -mt-4 p-2.5 rounded-full bg-gradient-to-tr from-deped-blue to-blue-600 text-white shadow-lg shadow-blue-500/30">
+        <a href="{% url 'teachers' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teachers' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-chalkboard-user text-base mb-0.5"></i>
+            <span>Faculty</span>
+        </a>
+        <button onclick="openGaModal()" class="flex flex-col items-center -mt-4 p-2.5 rounded-full bg-gradient-to-tr from-deped-blue to-blue-600 text-white shadow-lg shadow-blue-500/30 active:scale-95 transition" title="Run AI Optimizer">
             <i class="fa-solid fa-bolt text-deped-gold text-lg"></i>
         </button>
-        <a href="{% url 'teacher_loads' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teacher_loads' %}text-deped-blue{% else %}text-slate-500{% endif %}">
-            <i class="fa-solid fa-chalkboard-user text-base mb-0.5"></i>
+        <a href="{% url 'teacher_loads' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'teacher_loads' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
+            <i class="fa-solid fa-id-card-clip text-base mb-0.5"></i>
             <span>Loads (SF7)</span>
         </a>
-        <a href="{% url 'import_export' %}" class="flex flex-col items-center py-1 px-2 text-[10px] font-semibold {% if request.resolver_match.url_name == 'import_export' %}text-deped-blue{% else %}text-slate-500{% endif %}">
+        <a href="{% url 'import_export' %}" class="flex flex-col items-center py-1 px-1.5 text-[10px] font-semibold {% if request.resolver_match.url_name == 'import_export' %}text-deped-blue font-bold{% else %}text-slate-500{% endif %}">
             <i class="fa-solid fa-file-excel text-base mb-0.5"></i>
-            <span>Import/Export</span>
+            <span>Data</span>
         </a>
     </nav>
 
