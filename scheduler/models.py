@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 from django.contrib.auth.models import User
 
 class AcademicYear(models.Model):
@@ -72,7 +72,7 @@ class Subject(models.Model):
     title = models.CharField(max_length=150)
     grade_level = models.IntegerField(choices=GRADE_CHOICES)
     cluster = models.CharField(max_length=30, choices=CLUSTER_CHOICES, default='jhs_core')
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='subjects')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
     room_type_needed = models.CharField(max_length=30, choices=Room.ROOM_TYPES, default='lecture')
     weekly_periods = models.IntegerField(default=4, help_text="Number of 1-hour periods per week")
     consecutive_periods = models.IntegerField(default=1, help_text="1 for standard, 2 for double-period lab/workshop")
@@ -82,11 +82,17 @@ class Subject(models.Model):
         return f"{self.code} - {self.title} (G{self.grade_level})"
 
 class Teacher(models.Model):
+    CURRICULUM_LEVEL_CHOICES = [
+        ('jhs', 'Junior High School (Grades 7–10)'),
+        ('shs', 'Senior High School (Grades 11–12)'),
+        ('both', 'Both JHS & SHS (Integrated)'),
+    ]
     employee_id = models.CharField(max_length=30, unique=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField(blank=True, default='')
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='teachers')
+    curriculum_level = models.CharField(max_length=20, choices=CURRICULUM_LEVEL_CHOICES, default='both')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='teachers')
     max_daily_hours = models.IntegerField(default=6, help_text="DepEd DO 005 s. 2024 (max 6h actual teaching)")
     max_weekly_hours = models.IntegerField(default=30)
     preferred_vacant_period = models.IntegerField(null=True, blank=True, help_text="Preferred vacant period (1-8)")

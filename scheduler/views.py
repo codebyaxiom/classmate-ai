@@ -435,12 +435,14 @@ def print_sf7_view(request, teacher_id=None):
     }
     return render(request, 'print_sf7.html', context)
 
-
 def teachers_view(request):
+    level_filter = request.GET.get('level')
     dept_filter = request.GET.get('dept')
     search_query = request.GET.get('q', '').strip()
 
-    teachers = Teacher.objects.select_related('department').prefetch_related('qualifications__subject').all().order_by('last_name')
+    teachers = Teacher.objects.prefetch_related('qualifications__subject').all().order_by('last_name')
+    if level_filter:
+        teachers = teachers.filter(curriculum_level=level_filter)
     if dept_filter:
         teachers = teachers.filter(department__code=dept_filter)
     if search_query:
@@ -457,6 +459,7 @@ def teachers_view(request):
         'teachers': teachers,
         'departments': departments,
         'subjects': subjects,
+        'level_filter': level_filter,
         'dept_filter': dept_filter,
         'search_query': search_query,
     }
@@ -471,19 +474,20 @@ def add_teacher_api(request):
     first_name = request.POST.get('first_name', '').strip()
     last_name = request.POST.get('last_name', '').strip()
     email = request.POST.get('email', '').strip()
+    curriculum_level = request.POST.get('curriculum_level', 'both').strip()
     dept_id = request.POST.get('department_id')
     max_daily = int(request.POST.get('max_daily_hours', 6))
     max_weekly = int(request.POST.get('max_weekly_hours', 30))
     pref_vacant = request.POST.get('preferred_vacant_period')
     subject_ids = request.POST.getlist('subject_ids')
 
-    if not emp_id or not first_name or not last_name or not dept_id:
-        return JsonResponse({'success': False, 'message': 'Please fill in all required fields.'})
+    if not emp_id or not first_name or not last_name:
+        return JsonResponse({'success': False, 'message': 'First Name, Last Name, and Employee ID are required.'})
 
     if Teacher.objects.filter(employee_id=emp_id).exists():
         return JsonResponse({'success': False, 'message': f'Employee ID {emp_id} is already registered.'})
 
-    dept = get_object_or_404(Department, id=dept_id)
+    dept = Department.objects.filter(id=dept_id).first() if dept_id else None
     pref_v_int = int(pref_vacant) if pref_vacant and pref_vacant.isdigit() else None
 
     teacher = Teacher.objects.create(
@@ -491,6 +495,7 @@ def add_teacher_api(request):
         first_name=first_name,
         last_name=last_name,
         email=email or f"{first_name.lower()}.{last_name.lower()}@deped.gov.ph",
+        curriculum_level=curriculum_level,
         department=dept,
         max_daily_hours=max_daily,
         max_weekly_hours=max_weekly,
@@ -505,7 +510,7 @@ def add_teacher_api(request):
 
     AuditLog.objects.create(
         action="Teacher Registered",
-        details=f"Added faculty member {teacher.full_name} ({teacher.employee_id}) with {len(subject_ids)} qualified subjects."
+        details=f"Added faculty member {teacher.full_name} ({teacher.employee_id}, {teacher.get_curriculum_level_display()}) with {len(subject_ids)} qualified subjects."
     )
 
     return JsonResponse({

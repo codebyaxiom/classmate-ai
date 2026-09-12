@@ -91,7 +91,7 @@ class ClassmateAITestSuite(TestCase):
             'first_name': 'Gabriela',
             'last_name': 'Silang',
             'employee_id': 'T-TEST-999',
-            'department_id': self.dept.id,
+            'curriculum_level': 'jhs',
             'max_daily_hours': 6,
             'subject_ids': [self.subject.id],
         })
@@ -99,4 +99,5 @@ class ClassmateAITestSuite(TestCase):
         self.assertTrue(data['success'])
         self.assertTrue(Teacher.objects.filter(employee_id='T-TEST-999').exists())
         t = Teacher.objects.get(employee_id='T-TEST-999')
+        self.assertEqual(t.curriculum_level, 'jhs')
         self.assertTrue(t.qualifications.filter(subject=self.subject).exists())
